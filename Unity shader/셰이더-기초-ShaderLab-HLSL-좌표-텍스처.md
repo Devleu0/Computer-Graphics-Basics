@@ -204,8 +204,9 @@ Shader "MyShaders/SimpleColor"
 
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
 
-            // Properties 블록의 변수를 HLSL에서 사용하기 위해 선언
-            half4 _MyColor;
+            CBUFFER_START(UnityPerMaterial)
+                half4 _MyColor;
+            CBUFFER_END
 
             struct Attributes
             {
@@ -241,8 +242,8 @@ Shader "MyShaders/SimpleColor"
 ### float
 - 표준 32비트 부동소수점.
 - 높은 정밀도가 필요할 때 사용.
-- GPU 연산 비용이 가장 큼.
-- 일반적으로 복잡한 계산, 위치 계산, 물리 시뮬레이션 등에 사용.
+- 위치·거리·행렬 등 정밀도 손실이 문제가 될 수 있는 계산에 사용.
+- 성능과 레지스터 비용은 GPU와 컴파일 결과에 따라 달라지므로, `float`가 항상 가장 비싸다고 단정하지 않습니다.
 
 ****
 ```hlsl
@@ -254,9 +255,9 @@ float3 pos = float3(1.0, 2.0, 3.0);
 ### half
 
 * 16비트 부동소수점.
-* 정밀도는 낮지만 계산이 빠르고 메모리 사용량이 절반.
-* 주로 색 계산, 라이팅, 텍스처 좌표 계산 등에 사용.
-* 모바일/VR 등에서 성능 최적화에 자주 사용.
+* `float`보다 표현 정밀도와 범위가 낮을 수 있습니다.
+* 색상·조명처럼 오차가 허용되는 값에 고려할 수 있지만, 성능과 저장 비용은 GPU, 그래픽스 API, 컴파일 결과에 따라 달라집니다.
+* 모바일/VR을 포함한 목표 기기에서 화질과 성능을 측정한 뒤 선택합니다.
 
 ****
 
@@ -267,13 +268,11 @@ half brightness = 0.8;
 ---
 
 ### fixed
-> ⚠ `fixed` 는 **Built-in 파이프라인(CG)에서만** 쓰이는 타입입니다. URP 의 HLSL 셰이더에서는 `half`/`float` 만 사용하세요(`fixed4` 는 컴파일 오류가 날 수 있음).
+> ⚠ 이 문서의 URP HLSL 예제에서는 `fixed` 대신 `half` 또는 `float`를 사용합니다. `fixed`의 의미와 지원은 셰이더 언어·컴파일러·파이프라인에 따라 다르며, 고정된 11비트 형식이나 성능 이점을 보장하는 타입으로 간주하지 마세요.
 
 
-* 11비트 고정소수점.
-* 매우 낮은 정밀도 → 주로 **색 데이터(0~1 범위)**에 최적화됨.
-* 메모리와 성능을 아주 많이 절약.
-* 주로 모바일 셰이더나 간단한 색 조정에서 사용.
+* 오래된 Unity CG/Built-in 예제에서 볼 수 있는 타입 표기입니다.
+* URP HLSL 자료에서는 이 문서의 예제처럼 `half`/`float`를 사용하고, 다른 셰이더 언어로 옮길 때는 해당 컴파일러 문서를 확인합니다.
 
 ****
 
@@ -283,27 +282,36 @@ fixed4 col = fixed4(1.0, 0.5, 0.2, 1.0);
 
 ---
 
-## 언제 무엇을 쓸까?
+## 타입을 선택하는 기준
 
-* **정밀도 최우선** → `float`
-* **균형(정밀도 + 성능)** → `half`
-* **성능 최우선, 낮은 정밀도 허용** → `fixed` (Built-in 한정. URP 에서는 `half` 로 대체)
-
- **팁**
-Unity의 Surface Shader에서 `fixed`는 기본적으로 색 속성에 많이 사용됩니다.
-왜냐하면 색값은 보통 0~1 범위이기 때문에 `fixed` 타입이 충분하고, GPU 메모리 효율도 높기 때문입니다.
+* 계산 결과가 위치·깊이·거리처럼 작은 오차에도 민감하면 먼저 `float`를 사용하고, 목표 기기에서 오차와 성능을 확인합니다.
+* 색상·조명 같은 값은 `half`로 표현 가능한지 확인하되, 더 빠르거나 메모리를 절약한다고 미리 가정하지 않습니다.
+* 이 URP 학습 경로에서는 `fixed`를 사용하지 않습니다. 레거시 코드에서 발견하면 프로젝트의 렌더 파이프라인과 컴파일러 지원을 확인합니다.
 
 
 ## 3. HLSL 기초와 좌표 공간
 
 * HLSL (High-Level Shading Language)
 
-DirectX 기반의 셰이딩 언어로, C와 유사한 문법을 가집니다. 유니티는 내부적으로 HLSL을 사용합니다.
+C와 비슷한 문법을 가진 셰이딩 언어입니다. Unity의 SRP 셰이더는 HLSL을 사용하며, 컴파일 결과와 지원 기능은 렌더 파이프라인과 플랫폼에 따라 달라집니다.
 
-* 데이터 타입: float (32비트 실수), half (16비트 실수, 정확도 낮지만 빠름), fixed (11비트 고정소수점, 저사양 모바일용). float4는 4개의 float 값을 가진 벡터(예: rgba 색상), float4x4는 4x4 행렬을 의미합니다.
+* 데이터 타입: `float`은 보통 32비트, `half`는 낮은 정밀도를 요청하는 타입입니다. 실제 정밀도와 성능은 플랫폼·컴파일러에 따라 달라집니다. 이 URP 자료에서는 `fixed`를 사용하지 않습니다. `float4`는 4개 성분 벡터, `float4x4`는 4×4 행렬을 의미합니다.
 
 ### 좌표 공간 변환 (Coordinate Space Transformation)
 그래픽스에서 가장 중요한 개념 중 하나입니다. 정점 데이터는 여러 좌표 공간을 거쳐 최종적으로 화면에 표시됩니다.
+
+```mermaid
+flowchart LR
+    O["오브젝트 공간<br/>모델 원점 기준"]
+    W["월드 공간<br/>Transform 적용"]
+    V["뷰 공간<br/>카메라 기준"]
+    C["클립 공간<br/>투영·클리핑"]
+    N["NDC<br/>원근 나눗셈 후"]
+    S["화면 픽셀<br/>Viewport 변환"]
+    O -->|"Model"| W -->|"View"| V -->|"Projection"| C -->|"xyz / w"| N -->|"Viewport"| S
+```
+
+**왜 여러 공간을 쓰나요?** 같은 메시를 여러 위치에 배치하려면 메시 정점은 오브젝트 공간에 두고, Transform으로 씬에 배치된 월드 공간으로 옮깁니다. 카메라 기준의 뷰 공간으로 바꾼 뒤 Projection으로 클립 공간에 투영합니다. 클립 공간에서는 시야 밖의 정점을 잘라내며, 이후 `w`로 나누어 정규화된 장치 좌표(NDC)를 얻고 화면 픽셀 위치로 변환합니다.
 
     * **오브젝트 공간** (Object/Local Space): 모델링 프로그램에서 만든 모델 원점(0,0,0) 기준의 좌표계.
 
@@ -311,16 +319,32 @@ DirectX 기반의 셰이딩 언어로, C와 유사한 문법을 가집니다. �
 
     * **뷰 공간 (View/Camera Space)**: 카메라의 위치가 원점(0,0,0)이 되는 좌표계. 카메라 시점에서 본 상대적인 위치입니다.
 
-    * **클립 공간 (Clip Space/Homogeneous Clip Space)**: 카메라의 시야각(FOV)과 절단 평면(Clipping Planes)을 고려하여 화면에 보일 영역(-1에서 1 사이의 값으로 정규화)을 결정하는 4차원 좌표계. 이 공간 밖의 정점은 잘려나갑니다.
+    * **클립 공간 (Clip Space/Homogeneous Clip Space)**: Projection 변환 뒤의 4차원 동차 좌표계입니다. GPU는 이 공간에서 시야 밖의 프리미티브를 클리핑합니다. `w`로 나눈 뒤 얻는 NDC와 달리 아직 정규화된 좌표가 아니며, 깊이 범위 규약은 그래픽스 API와 플랫폼에 따라 달라질 수 있습니다.
 
-UNITY_MATRIX_MVP (Built-in) / TransformObjectToHClip() (URP): 이 행렬(또는 함수)은 정점 위치를 오브젝트 공간에서 클립 공간으로 한 번에 변환해주는 마법 같은 도구입니다. (Model * View * Projection 행렬의 곱)
+`UNITY_MATRIX_MVP`는 레거시 Built-in 셰이더에서 볼 수 있는 Model-View-Projection 행렬입니다. 이 URP 예제에서는 `TransformObjectToHClip()`을 사용해 오브젝트 공간 정점을 클립 공간으로 변환합니다. 서로 다른 파이프라인의 코드에서 두 API를 무조건 바꿔 쓸 수 있다고 가정하지 마세요.
 
 
 예제 코드의 vert 함수를 다시 살펴보세요. TransformObjectToHClip(IN.positionOS.xyz) 라인이 바로 3D 오브젝트의 정점 위치(positionOS)를 최종적으로 화면에 표시될 좌표(positionHCS)로 변환하는 핵심 코드입니다. 이 한 줄에 좌표 공간 변환의 모든 과정이 압축되어 있습니다.
 
+**직접 확인하기**: 같은 오브젝트를 씬에서 이동해도 모델 정점의 `positionOS` 값은 그대로지만 `positionHCS`는 달라집니다. 셰이더에서 `TransformObjectToWorld` 결과를 잠시 출력하거나 디버거로 비교해 보면 오브젝트 이동이 Model 변환에 반영되는 것을 확인할 수 있습니다. Unity의 `TransformObjectToHClip`은 클립 공간까지 변환하며, 화면 픽셀 좌표는 이후 GPU의 뷰포트 변환에서 만들어집니다.
+
+**연습과 점검**: 오브젝트를 이동·회전·스케일하고 `positionOS`와 `TransformObjectToWorld(positionOS)`의 차이를 기록합니다. `TransformObjectToHClip()` 결과는 클립 공간입니다. `w`로 나누기 전 값을 NDC나 화면 픽셀 좌표와 혼동하지 않는지 확인합니다.
+
 ## 4. **텍스처와 UV 매핑**
 ` UV 좌표`
 3D 모델의 표면을 2D 평면처럼 펼쳐놓은 좌표계입니다. U는 가로(x), V는 세로(y) 방향을 나타내며, 보통 0에서 1 사이의 값을 가집니다. 이 UV 좌표 덕분에 2D 이미지를 3D 모델 표면에 정확하게 입힐 수 있습니다.
+
+```mermaid
+flowchart LR
+    M["메시 정점의 UV<br/>TEXCOORD0"]
+    T["Tiling / Offset<br/>uv × scale + offset"]
+    I["프래그먼트의 보간 UV"]
+    S["텍스처 + 샘플러<br/>필터·주소 모드"]
+    C["샘플한 색상"]
+    M --> T --> I --> S --> C
+```
+
+정점에 저장된 UV는 삼각형 내부에서 보간되어 프래그먼트 셰이더에 전달됩니다. 샘플러는 UV 위치뿐 아니라 좌표가 텍스처 경계를 벗어났을 때의 주소 모드(Repeat, Clamp 등)와 축소·확대 필터링 방법도 결정합니다. 따라서 텍스처가 늘어나거나 경계가 반복되는 결과는 UV와 샘플러 설정을 함께 살펴야 합니다.
 
 `텍스처 샘플링 (Texture Sampling)`
 UV 좌표를 이용해 텍스처 이미지의 특정 위치에 있는 픽셀 색상 값을 가져오는 과정입니다. HLSL에서는 tex2D (Built-in) 또는 SAMPLE_TEXTURE2D (URP) 매크로를 사용합니다.
@@ -363,7 +387,9 @@ Shader "MyShaders/SimpleTexture"
             // Properties의 텍스처 변수와 Tiling/Offset 정보를 담는 변수 선언
             TEXTURE2D(_MainTex);
             SAMPLER(sampler_MainTex);
-            float4 _MainTex_ST; // _ST 접미사는 유니티가 자동으로 Tiling(xy)과 Offset(zw) 값을 채워줌
+            CBUFFER_START(UnityPerMaterial)
+                float4 _MainTex_ST; // _ST 접미사는 유니티가 자동으로 Tiling(xy)과 Offset(zw) 값을 채워줌
+            CBUFFER_END
 
             Varyings vert (Attributes IN)
             {
@@ -386,6 +412,10 @@ Shader "MyShaders/SimpleTexture"
 }
 ```
 이 셰이더를 적용한 머티리얼의 인스펙터를 보면 _MainTex 슬롯과 함께 Tiling, Offset 값을 조절하는 필드가 나타납니다. 이 값을 변경하며 텍스처가 어떻게 변하는지 관찰해보세요.
+
+**값으로 확인하기**: 입력 UV가 `(0.3, 0.4)`, Tiling이 `(2, 1)`, Offset이 `(0.1, 0)`이면 샘플 UV는 `(0.7, 0.4)`입니다. Tiling을 `(1, 1)`로 되돌리면 원래 좌표에 Offset만 더해집니다. Tiling을 `(2, 2)`로 바꿔 텍스처 반복이 보이지 않으면 텍스처 Import Settings의 Wrap Mode가 `Repeat`인지 확인하세요. `Clamp`에서는 경계 픽셀이 늘어나므로 반복 대신 가장자리가 늘어나 보입니다.
+
+**완료 확인**: 머티리얼의 Tiling과 Offset을 각각 바꾸어 UV 변환이 샘플 위치를 어떻게 이동시키는지 설명할 수 있습니다. 반복이 나타나지 않으면 UV 값뿐 아니라 텍스처의 Wrap Mode도 확인합니다.
 
 
 ## ShaderLab 특징
