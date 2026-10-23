@@ -23,19 +23,42 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     UNREFERENCED_PARAMETER(lpCmdLine);
 
     // 1. 윈도우 클래스를 등록합니다.
-    MyRegisterClass(hInstance);
+    if (!MyRegisterClass(hInstance))
+    {
+        DWORD error = GetLastError();
+        WCHAR message[256] = {};
+        WCHAR details[160] = {};
+        FormatMessageW(FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS, nullptr, error, 0, details, ARRAYSIZE(details), nullptr);
+        swprintf_s(message, L"Could not register the window class.\n%s", details);
+        MessageBoxW(nullptr, message, szTitle, MB_OK | MB_ICONERROR);
+        return 1;
+    }
 
     // 2. 애플리케이션 초기화를 수행합니다:
     if (!InitInstance (hInstance, nCmdShow))
     {
-        return FALSE;
+        return 1;
     }
 
     // 3. 기본 메시지 루프입니다.
     // 운영체제로부터 메시지를 받아 처리합니다.
-    MSG msg;
-    while (GetMessage(&msg, nullptr, 0, 0))
+    MSG msg = {};
+    for (;;)
     {
+        BOOL result = GetMessageW(&msg, nullptr, 0, 0);
+        if (result == -1)
+        {
+            DWORD error = GetLastError();
+            WCHAR message[256] = {};
+            WCHAR details[160] = {};
+            FormatMessageW(FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS, nullptr, error, 0, details, ARRAYSIZE(details), nullptr);
+            swprintf_s(message, L"Could not retrieve a window message.\n%s", details);
+            MessageBoxW(nullptr, message, szTitle, MB_OK | MB_ICONERROR);
+            return 1;
+        }
+        if (result == 0)
+            break;
+
         TranslateMessage(&msg); // 키보드 메시지를 변환
         DispatchMessage(&msg);  // 윈도우 프로시저로 메시지를 전달
     }
@@ -91,6 +114,12 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 
    if (!hWnd)
    {
+      DWORD error = GetLastError();
+      WCHAR message[256] = {};
+      WCHAR details[160] = {};
+      FormatMessageW(FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS, nullptr, error, 0, details, ARRAYSIZE(details), nullptr);
+      swprintf_s(message, L"Could not create the main window.\n%s", details);
+      MessageBoxW(nullptr, message, szTitle, MB_OK | MB_ICONERROR);
       return FALSE;
    }
 

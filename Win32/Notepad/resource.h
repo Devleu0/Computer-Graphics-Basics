@@ -6,13 +6,14 @@
 #define IDM_FILE_OPEN                   40001
 #define IDM_FILE_SAVE                   40002
 #define IDM_FILE_EXIT                   40003
+#define IDM_HELP_ABOUT                  40004
 
 // 다음은 새 개체에 대한 기본값입니다.
 //
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        102
-#define _APS_NEXT_COMMAND_VALUE         40004
+#define _APS_NEXT_COMMAND_VALUE         40005
 #define _APS_NEXT_CONTROL_VALUE         1000
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
