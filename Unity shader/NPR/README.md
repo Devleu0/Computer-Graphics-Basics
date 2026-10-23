@@ -1,6 +1,6 @@
 # NPR(툰) 셰이더 실습
 
-URP 기반 툰 셰이더를 단계별로 만들어 보는 실습입니다. 아래 "전체 코드"를 그대로 따라 만들고, 각 문서에서 원리를 설명합니다.
+URP 기반 툰 셰이더를 단계별로 만들어 보는 실습입니다. 제공된 Unity 프로젝트에 실행 자산과 데모 씬이 포함되어 있고, 아래 코드와 각 문서에서 구현 원리를 설명합니다.
 
 ## 환경
 
@@ -11,6 +11,15 @@ URP 기반 툰 셰이더를 단계별로 만들어 보는 실습입니다. 아�
 
 > 이 저장소의 `NPR_shader.shader` 는 **Built-in 파이프라인용** 옛 버전입니다. URP 프로젝트에서는 분홍색으로 보이므로 쓰지 마세요. 아래 코드가 URP 용 최신본입니다.
 
+## 제공 프로젝트에서 바로 실행하기
+
+1. [`ShaderTestProject`](../ShaderTestProject/)를 Unity 2022.3으로 연다.
+2. `Assets/Scenes/NPRDemo.unity`를 열고 Play를 눌러 NPR 구와 캡슐, 바닥 그림자를 확인한다.
+3. 램프 색 전환을 시험하려면 `NPR Ramp Blend Controller`가 참조하는 Directional Light의 색을 주황색과 파란색 계열로 바꾼다.
+4. 데모 자산을 다시 만들려면 `Tools > NPR > Create Demo Scene`을 실행한다. 이 메뉴는 램프 텍스처, 머티리얼, 씬을 재생성하고 씬을 Build Settings에 등록한다.
+
+셰이더와 C# 구현은 이 Unity 프로젝트의 `Assets/Shaders/NPR/` 및 `Assets/Scripts/NPR/`에 포함되어 있습니다. 아래 코드 블록은 학습·비교를 위한 정본이며, 기존 실습 환경에 직접 복사하는 방법도 다음 절에서 설명합니다.
+
 ## 학습 순서
 
 1. [램프 텍스처](./램프%20텍스처.md) — 툰 명암
@@ -20,15 +29,43 @@ URP 기반 툰 셰이더를 단계별로 만들어 보는 실습입니다. 아�
 
 각 문서는 아래 "전체 코드"의 어느 부분을 설명하는지 맨 위에 적어 둡니다.
 
+Unity 셰이더와 좌표 공간의 선행 개념은 [Unity 셰이더 학습 경로](../학습-경로.md)에서, CPU 호스트·GPU 파이프라인과 HLSL 바인딩 이해는 [HLSL/DirectX 기초 경로](../../Shader%20Learning/Basics/학습-경로.md)에서 보충할 수 있습니다. DirectX 11과 Win32는 선택 가능한 별도 학습 경로이며 이 URP 데모의 선수 조건은 아닙니다.
+
+## 데모 씬으로 실습하고 완료 확인하기
+
+`NPRDemo` 씬에서 실습할 때는 Project 창의 `Assets/Materials/NPRToon.mat`을 선택해 머티리얼 값을 바꾸고, `Assets/Textures/NPR/`의 램프 텍스처를 편집합니다. 변경 전후의 결과를 기록한 뒤 아래 기준을 확인하세요.
+
+| 순서 | 확인할 오브젝트·입력 | 실습 | 완료 기준 |
+|---|---|---|---|
+| 툰 램프 | `Toon Sphere`, `Ramp_Warm.png`, Directional Light | 라이트를 회전하고 램프의 어두운/중간/밝은 칸 색을 바꿉니다. 램프를 2칸 또는 5칸으로 바꿔 결과도 비교합니다. | 빛 방향에 따라 경계가 이동하고 램프 칸 수·색 변화가 구 표면에 반영되는 이유를 설명합니다. |
+| 그림자 | 툰 오브젝트, `Ground`, Directional Light | 라이트를 움직이고 URP Main Light 그림자 설정과 라이트의 Shadow Type을 바꿉니다. | 툰 오브젝트가 바닥에 그림자를 만들며, 그림자에서 램프의 가장 어두운 색이 사용되는 것을 확인합니다. |
+| 외곽선 | `NPRToon.mat`의 `_OutlineThickness`, `_OutlineDistanceFade` | 두께를 `0`과 `0.02`로 바꾸고, 카메라를 움직여 거리 페이드를 관찰합니다. | 두께가 0일 때 외곽선이 사라지고, 두께·거리에 따라 외곽선이 달라지는 것을 확인합니다. |
+| 림·스페큘러 | `_RimWidth`, `_RimSharpness`, `_Glossiness`, `_SpecularThreshold` | 값을 하나씩 바꾸고 카메라 또는 라이트 각도를 움직입니다. `_Glossiness = 0`도 확인합니다. | 림은 실루엣 가장자리를 따르고, 스페큘러 영역은 임계값·광택에 따라 바뀌며 `_Glossiness = 0`에서도 전체가 하이라이트가 되지 않습니다. |
+| 램프 혼합 | `NPR Ramp Blend Controller`가 참조하는 Directional Light 색 | 재생 중 라이트 색을 주황색과 파란색 계열 사이에서 바꿉니다. | 램프가 부드럽게 전환되고 `_NPR_RampBlend`가 머티리얼 프로퍼티가 아니라 전역 셰이더 값으로 제어되는 이유를 설명합니다. |
+
+전체 완료 기준은 각 입력을 독립적으로 조절해 결과 변화를 설명하고, 씬에서 툰 조명·그림자·외곽선·림/스페큘러·램프 혼합을 확인하는 것입니다. 기능이 보이지 않으면 아래 문제 해결 표와 [각 효과 문서](#학습-순서)의 URP 설정을 먼저 확인합니다.
+
+## 회귀 확인
+
+환경이나 셰이더를 변경한 뒤에는 아래 순서로 확인하고, 결과를 공유할 때 실제 Unity Editor와 URP 버전을 함께 기록합니다.
+
+1. `ProjectVersion.txt`의 Unity 버전으로 프로젝트를 열고 `Packages/manifest.json`의 URP 버전이 의도치 않게 바뀌지 않았는지 확인합니다.
+2. `NPRDemo.unity`를 열어 셰이더·스크립트 컴파일 오류가 없는지 Console을 확인합니다. 오류가 있으면 Play와 Build 전에 먼저 해결합니다.
+3. `NPRDemo`를 재생하고 툰 램프·바닥 그림자·외곽선·림/스페큘러·따뜻한/차가운 램프 전환을 각각 확인합니다.
+4. 자산 생성 코드를 바꾼 경우 `Tools > NPR > Create Demo Scene`을 실행하고, 생성된 머티리얼의 램프 참조와 Build Settings의 씬 항목이 유지되는지 확인합니다. 기존 씬과 생성 자산은 덮어쓰기 전에 확인 창이 표시됩니다.
+5. `File > Build Settings`에서 `NPRDemo` 씬이 포함되어 있는지 확인하고 Windows 플레이어를 빌드합니다. Unity 빌드 로그에서 NPR 셰이더 패스의 컴파일 오류가 없어야 합니다.
+
+이 환경에서 Windows 플레이어 빌드는 Unity 2022.3.62f3 / URP 14.0.12로 확인했습니다. 이 배치 검증은 프로젝트가 고정한 Unity 2022.3.14f1 / URP 14.0.9 조합의 화면 결과를 대신하지 않습니다.
+
 ## 따라 하기
 
-1. `3D (URP)` 템플릿으로 프로젝트를 만든다.
-2. Project 창에 `Assets/Shaders/NPR/` 폴더를 만들고, 아래 **전체 코드**의 `.shader` / `.hlsl` 파일 5개를 같은 이름으로 만들어 내용을 붙여 넣는다. (Create → Shader → Empty Shader 로 만든 뒤 내용을 통째로 교체. `.hlsl` 은 탐색기에서 텍스트 파일을 만들어 확장자를 `.hlsl` 로 바꾼다.)
-3. `Assets/Scripts/NPR/NPRRampBlendController.cs` 를 만든다.
-4. **램프 텍스처 만들기**: 256×16 PNG 를 3장 만든다 (그림판/포토샵/아래 Python). 왼쪽에서 오른쪽으로 어두운색 → 밝은색을 **계단(3칸)** 으로 채운다. 예) Warm: (110,80,90) / (210,170,150) / (255,240,220), Cool: (60,70,120) / (130,150,200) / (225,235,255). 텍스처 Inspector 에서 **Wrap Mode = Clamp** (셰이더가 포인트 샘플러를 쓰므로 Filter 설정은 상관없음).
-5. `NPRToon.shader` 우클릭 → Create → Material. Warm Ramp / Cool Ramp 슬롯에 텍스처를 넣는다.
-6. Sphere 를 만들어 머티리얼을 적용한다. Directional Light 를 돌려 **계단 모양 명암 + 검은 외곽선**이 보이면 성공.
-7. (4번 문서) 빈 오브젝트에 `NPRRampBlendController` 를 붙이고 Main Light 슬롯에 Directional Light 를 연결, 라이트 색을 주황 ↔ 하늘색으로 바꿔 본다.
+처음부터 구성하려면 `3D (URP)` 프로젝트에서 아래 절차를 따른다. 제공 프로젝트에서는 위의 바로 실행 절차를 사용하면 된다.
+
+1. 아래 **전체 코드**의 `.shader` / `.hlsl` 파일 5개를 `Assets/Shaders/NPR/`에 만들고, `NPRRampBlendController.cs`를 `Assets/Scripts/NPR/`에 만든다.
+2. **램프 텍스처 만들기**: 256×16 PNG 를 2장 만든다 (그림판/포토샵/아래 Python). 왼쪽에서 오른쪽으로 어두운색 → 밝은색을 **계단(3칸)** 으로 채운다. 예) Warm: (110,80,90) / (210,170,150) / (255,240,220), Cool: (60,70,120) / (130,150,200) / (225,235,255). 텍스처 Inspector 에서 **Wrap Mode = Clamp**.
+3. `NPRToon.shader` 우클릭 → Create → Material. Warm Ramp / Cool Ramp 슬롯에 텍스처를 넣는다.
+4. Sphere 를 만들어 머티리얼을 적용한다. Directional Light 를 돌려 **계단 모양 명암 + 외곽선 + 그림자**가 보이면 성공.
+5. 빈 오브젝트에 `NPRRampBlendController` 를 붙이고 Main Light 슬롯에 Directional Light 를 연결한 뒤 라이트 색을 주황 ↔ 하늘색으로 바꿔 본다.
 
 ```python
 # 램프 PNG 생성 (Pillow 필요: pip install pillow)
@@ -283,6 +320,7 @@ half4 OutlineFrag(Varyings IN) : SV_Target { return _OutlineColor; }
 #define NPR_SHADOW_CASTER_INCLUDED
 
 #include "NPRInput.hlsl"
+#include "Packages/com.unity.render-pipelines.core/ShaderLibrary/CommonMaterial.hlsl"
 #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Shadows.hlsl"
 
 float3 _LightDirection;
@@ -368,4 +406,4 @@ namespace ShaderStudy.NPR
 | 그림자를 안 받음 | Directional Light 의 Shadow Type 이 No Shadows 이거나 URP 에셋의 Main Light Cast Shadows 가 꺼짐 |
 | 큐브 모서리에서 외곽선이 갈라짐 | 하드 에지 메시는 법선이 면마다 달라 생기는 현상. 구/캐릭터처럼 스무스 법선 메시로 확인 |
 
-> **검증 상태**: URP 14 공식 Lit 셰이더의 구조를 따라 작성했지만 작성 환경에 Unity 가 없어 에디터에서 컴파일해 보지는 못했습니다. 에러가 나면 콘솔 메시지와 함께 이슈로 남겨 주세요.
+> **검증 상태**: Unity 2022.3.62f3 배치 실행에서 데모 생성 스크립트 컴파일과 씬·자산 생성까지 확인했습니다. 이 과정에서 패키지 관리자가 URP를 14.0.12로 올려 프로젝트 원래 설정(2022.3.14f1 / URP 14.0.9)은 복원했습니다. 따라서 고정된 프로젝트 버전에서의 셰이더 렌더 및 실제 화면 결과는 아직 확인되지 않았습니다.

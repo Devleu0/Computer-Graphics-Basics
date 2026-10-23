@@ -7,12 +7,13 @@
 - 틀린 코드·설명 수정
 - 검증하지 못한 부분을 숨기지 않고 표시
 
-> **검증 상태 (공통)**: 작성 환경에 Windows/Visual Studio/Unity 가 없어 어떤 코드도 직접 컴파일·실행해 보지 못했습니다. 모든 수정은 공식 문서의 API/규약과 수학적 일관성을 기준으로 한 검토 결과입니다. 오류를 발견하면 이슈로 남겨 주세요.
+> **검증 상태 (기존 감사)**: 당시에는 Windows/Visual Studio/Unity 가 없어 코드를 직접 컴파일·실행하지 못했습니다. 이후 NPR 데모는 Unity 배치 모드에서 자산 생성까지 확인했으며, 사용한 에디터와 미검증 범위는 [NPR 중심 개선 계획](./LEARNING_MATERIALS_PLAN.md) 및 [NPR 실습 안내](../Unity%20shader/NPR/README.md)에 기록합니다. 이 실행은 프로젝트가 고정한 Unity 2022.3.14f1 / URP 14.0.9 조합의 렌더 검증을 대신하지 않습니다.
 
 ## 1. Unity (`Unity shader/`)
 | 문서 | 문제 | 조치 |
 |---|---|---|
 | `ShaderTestProject` | `Packages/manifest.json` 이 없어 URP 패키지가 설치되지 않음 | `manifest.json` 추가 (URP 14.0.9, Unity 2022.3 기준) |
+| `ShaderTestProject` | NPR 코드가 안내 문서에만 있어 제공 프로젝트에서 결과를 바로 실행할 수 없음 | NPR 셰이더·램프 텍스처·머티리얼·`NPRDemo` 씬과 재생성 메뉴 추가. Windows 빌드에서 그림자 패스의 `LerpWhiteTo` 선언 누락을 발견해 `CommonMaterial.hlsl` include 로 수정. Unity 2022.3.62f3 / URP 14.0.12 에서 씬 생성·셰이더 패스 컴파일·Windows 플레이어 빌드 성공; 고정된 URP 14.0.9 의 화면 렌더는 미검증 |
 | NPR 4종 | Built-in 전용 코드(`CGPROGRAM`, Surface Shader)와 URP 가 뒤섞여 단계별로 이어지지 않음, 램프 텍스처 제작법 없음 | URP 단일 구현으로 재작성, `NPR/README.md` 에 전체 코드·따라 하기·램프 제작·문제 해결 수록 |
 | NPR 외곽선 | 외곽선 패스에 `LightMode=ShadowCaster` → 그려지지 않음 | `SRPDefaultUnlit` 로 수정 |
 | NPR 스페큘러 | `_Glossiness=0` 이면 `pow(x,0)=1` 로 전체가 하이라이트 | 지수 `max(1,…)` |
