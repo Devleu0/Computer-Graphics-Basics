@@ -17,7 +17,7 @@ Visual Studio로 개발 환경을 구축했다면, 이제 인터넷이나 책에
 2. 솔루션 탐색기에서 템플릿이 만든 `.cpp`, `.h`, `.rc` 파일과 `Resource Files` 안의 아이콘 등을 **프로젝트에서 제거**합니다. (남겨 두면 `wWinMain`/`WndProc` 이 중복되어 링크 오류가 납니다.)
 3. 프로젝트 우클릭 → 추가 → 기존 항목 → 위 표의 파일을 추가합니다.
 4. 프로젝트 속성 → 고급 → **문자 집합 = 유니코드 사용** (기본값). 이 저장소의 예제는 `wWinMain` 과 `L"..."` 를 쓰는 **유니코드 전용** 코드입니다. 아래 "문제 유형 1" 의 멀티바이트 전환은 외부의 오래된 ANSI 예제에만 쓰세요.
-5. F5 로 실행. HelloWorld 는 800x600 빈 창, Paint 는 드래그로 선 그리기, Notepad 는 File 메뉴(Open/Save/Exit)가 있는 메모장, FileSearcher 는 경로와 검색어를 넣고 Search 를 누르면 목록에 결과가 쌓이는 대화상자가 나오면 성공입니다.
+5. F5 로 실행. HelloWorld 는 800x600 빈 창, Paint 는 드래그로 선 그리기, Notepad 는 File 메뉴(Open/Save/Exit)와 Help 메뉴(About)가 있는 메모장, FileSearcher 는 경로와 검색어를 넣고 Search 를 누르면 목록에 결과가 쌓이고 완료 수가 표시되는 대화상자가 나오면 성공입니다. 메모장은 UTF-8 텍스트를 읽고 UTF-8 BOM을 포함해 저장합니다. FileSearcher 는 10 MiB보다 작은 파일을 현재 ANSI 코드 페이지로 검색하는 교육용 예제입니다.
 
 > **참고**: 리소스 스크립트는 반드시 확장자가 `.rc` 여야 Visual Studio 가 컴파일합니다. 이전에는 `resource.cpp` 로 되어 있어 메뉴/대화상자가 포함되지 않았습니다. 이 예제들은 작성자가 직접 Visual Studio 에서 빌드해 확인하지 않았으므로 오류가 나면 이슈로 알려 주세요.
 
