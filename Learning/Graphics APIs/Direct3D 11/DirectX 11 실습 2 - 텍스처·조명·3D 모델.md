@@ -1,5 +1,5 @@
-# DirectX 11 학습 2단계: 중급 (핵심 기능 마스터)
-> **따라 하기**: 1단계의 `main.cpp` 를 확장해서 진행합니다 (상수 버퍼, 텍스처, 깊이 버퍼를 추가). 아래 C++ 코드는 DirectX Tool Kit 의 `SimpleMath`(`#include <SimpleMath.h>`, NuGet `directxtk_desktop_win10`)를 사용하는 *조각*이며 전체 프로그램이 아닙니다. 텍스처 로드는 DirectXTK 의 `CreateWICTextureFromFile`(`WICTextureLoader.h`)이 가장 간단합니다. 환경과 행렬 규약은 [실습 환경과 공통 규약](../Shader%20Learning/0.%20실습%20환경과%20공통%20규약.md)을 먼저 읽으세요. 작성자가 직접 빌드해 확인하지는 못했습니다.
+# 실습 2: 텍스처·조명이 적용된 3D 모델
+> **따라 하기**: 1단계의 `main.cpp` 를 확장해서 진행합니다 (상수 버퍼, 텍스처, 깊이 버퍼를 추가). 아래 C++ 코드는 DirectX Tool Kit 의 `SimpleMath`(`#include <SimpleMath.h>`, NuGet `directxtk_desktop_win10`)를 사용하는 *조각*이며 전체 프로그램이 아닙니다. 텍스처 로드는 DirectXTK 의 `CreateWICTextureFromFile`(`WICTextureLoader.h`)이 가장 간단합니다. 환경과 행렬 규약은 [실습 환경과 공통 규약](../../Shaders/HLSL/0.%20실습%20환경과%20공통%20규약.md)을 먼저 읽으세요. 작성자가 직접 빌드해 확인하지는 못했습니다.
 
 ### 목표
 단순한 도형 렌더링을 넘어, 3D 그래픽스의 핵심 요소인 텍스처, 조명, 카메라의 원리를 이해하고 직접 구현함으로써 사실적인 3D 씬을 구성하는 능력을 기릅니다. 이 단계를 마치면 3D 모델에 텍스처를 입히고, 조명을 비추며, 원하는 시점에서 씬을 바라볼 수 있게 됩니다.

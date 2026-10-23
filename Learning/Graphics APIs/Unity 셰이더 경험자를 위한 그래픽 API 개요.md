@@ -126,7 +126,7 @@ context->VSSetConstantBuffers(0, 1, &constantBuffer);
 
 ## 1. Unity에서 쓰던 가장 단순한 Unlit Shader
 
-> 아래 Unity 코드는 **Built-in 파이프라인(CG)** 문법입니다. URP 는 `HLSLPROGRAM` + `TransformObjectToHClip` 을 씁니다. 비교 목적의 개념 예시이며, D3D11 쪽 C++ 조각은 호스트 전체 코드가 아닙니다 ([DirectX 11 1단계](./Directx11/DirectX%2011%201단계.md) 의 `main.cpp` 에 이어 붙이세요).
+> 아래 Unity 코드는 **Built-in 파이프라인(CG)** 문법입니다. URP 는 `HLSLPROGRAM` + `TransformObjectToHClip` 을 씁니다. 비교 목적의 개념 예시이며, D3D11 쪽 C++ 조각은 호스트 전체 코드가 아닙니다 ([창과 컬러 삼각형 실습](Direct3D%2011/DirectX%2011%20실습%201%20-%20창과%20컬러%20삼각형.md) 의 `main.cpp` 에 이어 붙이세요).
 
 ```c
 Shader "Custom/UnlitColor"

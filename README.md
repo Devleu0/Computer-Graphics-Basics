@@ -1,80 +1,63 @@
-# 실시간 그래픽스와 셰이더 학습 자료
+# Unity URP NPR 셰이더 실습
 
-이 저장소는 Unity URP에서 NPR(툰) 셰이더를 직접 만들고 실행해 보는 것을 대표 실습으로 삼는 한국어 그래픽스 학습 저장소입니다. 셰이더 기초와 HLSL/DirectX 자료가 핵심 실습을 뒷받침하며, DirectX 11과 Win32는 별도의 학습 경로로 제공합니다.
+이 저장소의 목표는 **Unity URP에서 NPR(비실사 렌더링) 셰이더를 이해하고, 실행하고, 직접 확장하는 것**입니다. 대표 결과물을 먼저 실행한 뒤 필요한 셰이더 개념을 학습하고, NPR 효과를 재현·변형하는 단일 권장 경로를 제공합니다. 다른 API 학습 자료는 선택 참고용이며, Windows API 자료는 독립 보관합니다.
 
-## 시작하기
+## 권장 학습 경로
 
-### 대표 결과물: NPR 데모 실행
+### 1. NPR 데모 실행하기
 
-1. Unity 2022.3 LTS로 [`Unity shader/ShaderTestProject`](./Unity%20shader/ShaderTestProject/)를 엽니다.
-2. 프로젝트가 임포트를 마치면 `Assets/Scenes/NPRDemo.unity`를 열고 Play를 누릅니다.
-3. `NPR Toon` 머티리얼이 적용된 구와 캡슐에서 단계형 툰 명암, 외곽선, 메인 라이트 그림자를 확인합니다.
-4. 따뜻한 램프와 차가운 램프 전환은 Hierarchy의 `NPR Ramp Blend Controller`가 참조하는 Directional Light의 색을 바꾸어 확인합니다.
+Unity 2022.3 LTS로 [`Projects/NPR Unity/ShaderTestProject`](./Projects/NPR%20Unity/ShaderTestProject/)를 열고 `Assets/Scenes/NPRDemo.unity`를 재생합니다. 툰 명암, 외곽선, 메인 라이트 그림자를 관찰하고, Directional Light 색을 바꾸어 램프 혼합을 확인합니다.
 
-데모 생성 및 수정 안내는 [NPR 실습 README](./Unity%20shader/NPR/README.md), 현재 우선순위와 검증 상태는 [NPR 중심 개선 계획](./docs/LEARNING_MATERIALS_PLAN.md)을 참고하세요. 실제 Unity 검증을 마치기 전에는 에디터 실행 결과가 보장된다고 가정하지 마세요.
+실행 방법과 효과별 실습은 [NPR 실습 안내](./Learning/Shaders/Unity%20URP/NPR/README.md)에 있습니다. 프로젝트는 Unity 2022.3.14f1 / URP 14.0.9를 기준으로 합니다. 이전 빌드는 Unity 2022.3.62f3 / URP 14.0.12에서 확인했으며, 고정 버전 조합의 화면 렌더링은 아직 확인되지 않았습니다.
 
-### 다른 학습 경로
+### 2. 셰이더의 필수 개념 익히기
 
-대표 실습 외의 경로는 목표에 맞춰 선택할 수 있습니다.
+[Unity 셰이더 기초](./Learning/Shaders/Unity%20URP/셰이더-기초-ShaderLab-HLSL-좌표-텍스처.md)에서 ShaderLab과 URP 셰이더 구조, 정점·프래그먼트 흐름, 좌표 공간, UV와 텍스처 샘플링을 학습합니다. 이후 [조명·블렌딩·정점 애니메이션](./Learning/Shaders/Unity%20URP/조명-블렌딩-정점-애니메이션.md)에서 조명 방향과 법선 등 NPR 조명에 필요한 항목을 다룹니다. 각 문서의 모든 주제를 순서대로 완주할 필요는 없습니다.
 
-1. 관심 경로를 고릅니다. 각 경로는 정해진 주차나 학습 기간이 없는 자기 주도형 모듈입니다.
-2. 경로 문서에서 선수 지식, 환경, 목표를 확인합니다.
-3. 개념을 읽은 뒤 코드를 직접 실행하거나 프로젝트에 적용하고, 문서의 연습 과제와 성공 기준으로 이해도를 점검합니다.
-4. 셰이더 코드의 호스트 측 설정이 필요하면 [실습 환경과 공통 규약](./Shader%20Learning/0.%20실습%20환경과%20공통%20규약.md)도 확인합니다.
+### 3. NPR 효과 재현하고 원리 설명하기
 
-문서의 검증 범위와 알려진 제한은 [저장소 검토 결과](./docs/REVIEW.md)를 참고하세요. 코드가 실제 컴파일·실행 환경에서 확인되었는지 각 문서의 안내를 먼저 읽어 주세요.
+[NPR 실습 안내](./Learning/Shaders/Unity%20URP/NPR/README.md)의 순서에 따라 램프 명암, 역면 외곽선, 림·스페큘러, 다중 램프 혼합을 하나씩 바꿔 봅니다. 실습별 입력과 기대 결과를 비교하고, 각 효과의 셰이더 코드와 한계를 설명할 수 있는지 확인합니다.
 
-## 어떤 경로를 선택할까요?
+### 4. 결과 확장하고 검증하기
 
-| 목표 | 추천 순서 | 선수 지식 및 결과 |
-|---|---|---|
-| NPR/툰 셰이더 결과물 만들기 | [NPR 데모 실행](./Unity%20shader/NPR/README.md) → [Unity 셰이더 학습 경로](./Unity%20shader/학습-경로.md) | Unity 2022.3 / URP 14. 램프 조명, 그림자, 외곽선이 통합된 결과를 실행하고 수정 |
-| Unity에서 셰이더를 처음 만들기 | [Unity 셰이더 학습 경로](./Unity%20shader/학습-경로.md) → [ShaderLab 기초](./Unity%20shader/셰이더-기초-ShaderLab-HLSL-좌표-텍스처.md) → [조명·블렌딩·정점 애니메이션](./Unity%20shader/조명-블렌딩-정점-애니메이션.md) → [노멀 매핑·프레넬·디졸브](./Unity%20shader/노멀-매핑-프레넬-디졸브.md) → [후처리·컴퓨트·최적화](./Unity%20shader/후처리-컴퓨트-최적화-프로젝트.md) | Unity 프로젝트 사용 경험 권장. 머티리얼과 화면 효과를 직접 제작 |
-| HLSL과 GPU 파이프라인 이해하기 | [HLSL/DirectX 학습 경로](./Shader%20Learning/Basics/학습-경로.md) → [실습 환경과 공통 규약](./Shader%20Learning/0.%20실습%20환경과%20공통%20규약.md) → [기초](./Shader%20Learning/Basics/기초-파이프라인-조명-텍스처.md) → [중급](./Shader%20Learning/Basics/중급-재질-노멀-그림자-반사.md) → [고급](./Shader%20Learning/Basics/고급-후처리-테셀레이션-컴퓨트.md) | C++ 기초와 벡터·행렬 이해 권장. 셰이더와 호스트 프로그램의 연결을 학습 |
-| DirectX 11 렌더링 기반 다지기 | [DirectX 11 학습 커리큘럼](./Directx11/DirectX%2011%20학습%20커리큘럼.md) → [기초](./Directx11/DirectX%2011%201단계.md) → [중급](./Directx11/DirectX%2011%202단계%20중급.md) → [고급](./Directx11/DirectX%2011%203단계%20고급.md) | C++ 및 Win32 기본 권장. 초기화부터 렌더링 기능까지 단계별 구현 |
-| Windows 데스크톱 API 익히기 | [Win32 학습 경로](./Win32/0.%20Win32%20학습%20커리큘럼.md) → [예제 실행 가이드](./Win32/Win%20API%20예제%20테스트%20환경%20활용%20가이드.md) | C/C++ 기초 권장. 윈도우, 입력, GDI, 리소스, 시스템 API 학습 |
+기존 데모를 바탕으로 색상 단계, 외곽선, 림 효과 중 하나를 확장하거나 조합합니다. 변경 전후 이미지를 남기고, Unity Console 오류와 그림자·머티리얼 동작을 확인합니다. 새 주제를 추가하기보다 기존 효과의 재현성과 학습 결과를 먼저 검증합니다.
 
-## 자료 찾아보기
+## 보조 학습 자료
 
-### Unity 셰이더
+아래 자료는 핵심 경로의 필수 단계가 아닙니다. 필요한 개념이 있을 때 참고하고, NPR 실습과 직접 연결되지 않는 확장 주제는 완료 목표에 포함하지 않습니다.
 
-- [Unity 셰이더 학습 경로](./Unity%20shader/학습-경로.md)
-- [ShaderLab 기초와 좌표·텍스처](./Unity%20shader/셰이더-기초-ShaderLab-HLSL-좌표-텍스처.md)
-- [조명·블렌딩·정점 애니메이션](./Unity%20shader/조명-블렌딩-정점-애니메이션.md)
-- [노멀 매핑·프레넬·디졸브](./Unity%20shader/노멀-매핑-프레넬-디졸브.md)
-- [후처리·컴퓨트·최적화·프로젝트](./Unity%20shader/후처리-컴퓨트-최적화-프로젝트.md)
-- [고급 셰이더 학습 로드맵](./Unity%20shader/고급%20셰이더%20기술%20심화%20학습%20로드맵.md)
-- [NPR 셰이더 실습 프로젝트](./Unity%20shader/NPR/README.md)
+| 자료 | 활용 범위 |
+|---|---|
+| [컴퓨터 그래픽스 학습 로드맵](./Learning/Computer%20Graphics/컴퓨터%20그래픽스%20학습%20로드맵.md) | 벡터·행렬·렌더링 이론을 보충할 때 참고. 전체 단계나 API를 모두 이수할 필요 없음 |
+| [HLSL 실습 환경과 공통 규약](./Learning/Shaders/HLSL/0.%20실습%20환경과%20공통%20규약.md) 및 [HLSL 경로](./Learning/Shaders/HLSL/학습-경로.md) | GPU 파이프라인, 리소스 바인딩, 네이티브 셰이더 호스트 코드를 더 깊이 볼 때 참고. Unity URP 셰이더 실습의 선수 과정은 아님 |
+| [Direct3D 11 실습 경로](./Learning/Graphics%20APIs/Direct3D%2011/DirectX%2011%20실습%20경로.md) | Unity가 숨기는 그래픽 API와 C++ 호스트 역할을 비교하고 싶을 때 선택 |
+| [Unity 셰이더 경험자를 위한 그래픽 API 개요](./Learning/Graphics%20APIs/Unity%20셰이더%20경험자를%20위한%20그래픽%20API%20개요.md) | Unity와 네이티브 API의 파이프라인·바인딩 차이를 빠르게 비교 |
+| [Unity 셰이더 확장 주제](./Learning/Shaders/Unity%20URP/학습-경로.md) | 노멀 매핑, 디졸브, 후처리, 컴퓨트 등 NPR 데모 밖의 기법을 개별 목적에 따라 학습 |
 
-### HLSL / DirectX 셰이더
+## 독립 보관 자료
 
-- [학습 경로](./Shader%20Learning/Basics/학습-경로.md)
-- [실습 환경과 공통 규약](./Shader%20Learning/0.%20실습%20환경과%20공통%20규약.md)
-- [기초: 파이프라인·조명·텍스처](./Shader%20Learning/Basics/기초-파이프라인-조명-텍스처.md)
-- [중급: 재질·노멀·그림자·반사](./Shader%20Learning/Basics/중급-재질-노멀-그림자-반사.md)
-- [고급: 후처리·테셀레이션·컴퓨트](./Shader%20Learning/Basics/고급-후처리-테셀레이션-컴퓨트.md)
-- [PBR 셰이더](./Shader%20Learning/Advanced/PBR-실사-렌더링-셰이더.md)
-- [Deferred Shading](./Shader%20Learning/Advanced/Deferred-Shading-다중-광원.md)
-- [테셀레이션 지형](./Shader%20Learning/Advanced/테셀레이션-동적-지형-렌더링.md)
+[Windows API 학습 자료와 예제](Archive/Windows%20API/Lessons/0.%20Win32%20학습%20커리큘럼.md)는 NPR 셰이더 학습과 별개의 Windows 데스크톱 프로그래밍 경로입니다. 기존 자료를 보존하되 이 저장소의 핵심 학습 경로와는 분리했습니다.
 
-### 그래픽스 기초와 API 참고
+## 분류 기준
 
-- [컴퓨터 그래픽스 학습 로드맵](./컴퓨터%20그래픽스%20학습%20로드맵.md)
-- [Unity 셰이더 경험자를 위한 실제 API 개요](./UnityVSAPI.md)
-- [DirectX 11 학습 경로](./Directx11/DirectX%2011%20학습%20커리큘럼.md)
-- [Win32 학습 경로](./Win32/0.%20Win32%20학습%20커리큘럼.md)
+```text
+Learning/
+  Shaders/Unity URP/       NPR 핵심 경로와 Unity 셰이더 선택 주제
+  Shaders/HLSL/            네이티브 HLSL 선택 참고 자료
+  Graphics APIs/           Direct3D 11 및 API 비교 참고 자료
+  Computer Graphics/       수학·그래픽스 이론 보충 자료
+Projects/
+  NPR Unity/               실행 가능한 대표 데모
+Archive/
+  Windows API/             NPR과 무관한 독립 자료를 삭제 없이 보관
+    README.md               보관 자료 진입점
+docs/                      검토·개선 기록
+```
 
-## 학습 자료를 활용하는 방법
-
-- **주차나 기간에 얽매이지 마세요.** 모듈은 개념 의존 관계를 안내하는 순서이며, 필요한 시간을 정하거나 진도를 재촉하지 않습니다.
-- **먼저 목표를 확인하세요.** 각 경로에서 다루는 주제와 필요한 배경 지식을 확인한 다음, 모르는 선행 개념은 그래픽스 로드맵이나 공통 규약 문서로 돌아가 보충하세요.
-- **코드를 직접 바꿔 보세요.** 색, 빛 방향, 표면 거칠기, 텍스처 좌표 등 입력을 바꾸고 결과가 달라지는 이유를 기록하면 단순 복사보다 학습 효과가 큽니다.
-- **학습 결과를 남기세요.** 각 모듈을 마칠 때 직접 만든 결과물, 바꿔 본 값, 해결한 문제를 짧게 기록하고, 다음 모듈의 선수 지식으로 활용하세요.
-- **완성형과 발췌 코드를 구분하세요.** 발췌 코드는 호스트 코드, 상수 버퍼 또는 앞선 셰이더 정의가 필요할 수 있습니다. 문서의 실행 조건을 먼저 확인하세요.
-- **검증 상태를 확인하세요.** 모든 예제가 모든 환경에서 실행된다고 가정하지 않습니다. 버전 차이와 미검증 항목은 문서 및 [검토 기록](./docs/REVIEW.md)에 표시합니다.
+새 내용은 NPR 학습 목표, 실행 가능한 결과, 관찰 가능한 완료 기준을 모두 제시할 수 있을 때만 핵심 경로에 추가합니다. 검증 범위와 알려진 제한은 [저장소 검토 결과](./docs/REVIEW.md), 작업 우선순위와 진행 기록은 [개선 계획](./docs/LEARNING_MATERIALS_PLAN.md)을 참고하세요.
 
 ## 참고 도구
 
-- 개발: Visual Studio, Unity
-- 그래픽스 디버깅: PIX for Windows, RenderDoc, Unity Frame Debugger
-- 이론 및 예제: [Real-Time Rendering](https://www.realtimerendering.com/), [Learn OpenGL](https://learnopengl.com/), [Catlike Coding](https://catlikecoding.com/), [Microsoft DirectX Graphics Samples](https://github.com/microsoft/DirectX-Graphics-Samples)
+- 개발: Unity 2022.3 LTS, Visual Studio
+- 그래픽스 디버깅: Unity Frame Debugger, RenderDoc, PIX for Windows
+- 이론 및 예제: [Real-Time Rendering](https://www.realtimerendering.com/), [Catlike Coding](https://catlikecoding.com/), [Microsoft DirectX Graphics Samples](https://github.com/microsoft/DirectX-Graphics-Samples)
