@@ -13,7 +13,7 @@ URP 기반 툰 셰이더를 단계별로 만들어 보는 실습입니다. 제�
 
 ## 제공 프로젝트에서 바로 실행하기
 
-1. [`ShaderTestProject`](../ShaderTestProject/)를 Unity 2022.3으로 연다.
+1. [`ShaderTestProject`](../../../../Projects/NPR%20Unity/ShaderTestProject/)를 Unity 2022.3으로 연다.
 2. `Assets/Scenes/NPRDemo.unity`를 열고 Play를 눌러 NPR 구와 캡슐, 바닥 그림자를 확인한다.
 3. 램프 색 전환을 시험하려면 `NPR Ramp Blend Controller`가 참조하는 Directional Light의 색을 주황색과 파란색 계열로 바꾼다.
 4. 데모 자산을 다시 만들려면 `Tools > NPR > Create Demo Scene`을 실행한다. 이 메뉴는 램프 텍스처, 머티리얼, 씬을 재생성하고 씬을 Build Settings에 등록한다.
@@ -29,7 +29,39 @@ URP 기반 툰 셰이더를 단계별로 만들어 보는 실습입니다. 제�
 
 각 문서는 아래 "전체 코드"의 어느 부분을 설명하는지 맨 위에 적어 둡니다.
 
-Unity 셰이더와 좌표 공간의 선행 개념은 [Unity 셰이더 학습 경로](../학습-경로.md)에서, CPU 호스트·GPU 파이프라인과 HLSL 바인딩 이해는 [HLSL/DirectX 기초 경로](../../Shader%20Learning/Basics/학습-경로.md)에서 보충할 수 있습니다. DirectX 11과 Win32는 선택 가능한 별도 학습 경로이며 이 URP 데모의 선수 조건은 아닙니다.
+Unity 셰이더와 좌표 공간의 선행 개념은 [Unity 셰이더 학습 경로](../학습-경로.md)에서 보충할 수 있습니다. [네이티브 HLSL 학습 경로](../../HLSL/학습-경로.md)와 [Direct3D 11](../../../Graphics%20APIs/Direct3D%2011/DirectX%2011%20실습%20경로.md)은 호스트 프로그램과 API 바인딩까지 학습하려는 경우의 선택 자료이며 이 URP 데모의 선수 조건은 아닙니다.
+
+## NPR 셰이더의 전체 구조
+
+NPR(Non-Photorealistic Rendering)은 현실의 빛을 항상 더 정확히 모사하는 대신, 선·색·명암 같은 시각적 표현을 목적에 맞게 선택하는 렌더링 접근입니다. 이 데모는 PBR 셰이더가 아니라, 램프 색과 외곽선·림을 조절하는 **스타일 기반 포워드 셰이더**입니다. 따라서 각 단계에서 어떤 빛의 효과를 보존하고 단순화할지 직접 선택합니다.
+
+```mermaid
+flowchart TB
+    subgraph Scene["Unity 씬 입력"]
+        GEO["메시 위치·법선"]
+        LIGHT["메인 Directional Light<br/>색·방향·그림자"]
+        MAT["NPR 머티리얼<br/>램프·기본색·효과 설정"]
+        CTRL["RampBlendController<br/>라이트 색 → 전역 blend"]
+    end
+    GEO --> BASE["ForwardLit 패스"]
+    LIGHT --> BASE
+    MAT --> BASE
+    CTRL --> BASE
+    BASE --> RAMP["N·L → Warm/Cool 램프 조회<br/>그림자 감쇠"]
+    RAMP --> DETAIL["스페큘러 + 림 추가"]
+    DETAIL --> COLOR["툰 표면 색"]
+    GEO --> OUTLINE["SRPDefaultUnlit 패스<br/>법선 방향 확장·앞면 컬링"]
+    MAT --> OUTLINE
+    OUTLINE --> EDGE["실루엣 외곽선"]
+    COLOR --> FRAME["카메라 색상에 합성"]
+    EDGE --> FRAME
+    LIGHT --> SHADOW["ShadowCaster 패스<br/>광원 그림자 맵에 메시 기록"]
+    SHADOW --> RAMP
+```
+
+**도식 읽기:** 그림자 패스는 화면에 외곽선을 그리는 패스와 다릅니다. ShadowCaster는 메인 라이트의 그림자 맵에 메시를 기록하고, ForwardLit은 그 결과를 샘플링해 툰 명암에 반영합니다. 외곽선은 별도의 `SRPDefaultUnlit` 메시 패스가 그립니다. 스페큘러와 림은 ForwardLit 패스 안에서 표면 색에 더해집니다.
+
+**학습 질문:** 이 셰이더가 물리 기반 조명과 달리 예술적 선택을 하는 지점을 찾으세요. 예를 들어 하프 램버트는 뒤쪽 면을 완전히 자르지 않고, 그림자는 검은 램프 칸으로 표현하며, 림은 광원 색이나 그림자와 독립적으로 더해집니다. 각 선택이 결과 스타일에 주는 효과와 바꾸었을 때의 변화를 설명할 수 있으면 다음 실습으로 진행합니다.
 
 ## 데모 씬으로 실습하고 완료 확인하기
 
