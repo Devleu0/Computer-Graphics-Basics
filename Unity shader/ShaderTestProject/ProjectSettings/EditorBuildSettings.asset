@@ -8,4 +8,7 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/Scenes/SampleScene.unity
     guid: 99c9720ab356a0642a771bea13969a05
+  - enabled: 1
+    path: Assets/Scenes/NPRDemo.unity
+    guid: 5bb6702ada0b53a4f9f373a6580b0591
   m_configObjects: {}
