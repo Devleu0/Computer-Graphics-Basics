@@ -1,18 +1,19 @@
 # 저장소 검토 결과 (재현성 감사)
 
-이 저장소의 상당수 자료는 AI 로 생성되어 따라 해도 막히는 부분이 있었습니다. 이 PR 은 **프로젝트를 실행 가능하게 만드는 것이 아니라, 문서만 보고 따라 할 수 있도록** 다음을 바로잡았습니다.
+초기 검토에서는 문서의 오류와 따라 하기 과정의 누락을 확인했습니다. 이 기록은 당시 발견 사항과 조치를 보존하며, 프로젝트 실행 검증 범위는 아래에 별도로 표시합니다.
 
 - 각 문서 맨 위에 **따라 하기 환경(도구 버전)과 순서**를 표시
 - 코드가 문서 안에서 완결되도록(빠진 선언·include·구조체 보완) 정리, 발췌 조각은 발췌라고 명시하고 **호스트에서 할 일**을 적음
 - 틀린 코드·설명 수정
 - 검증하지 못한 부분을 숨기지 않고 표시
 
-> **검증 상태 (공통)**: 작성 환경에 Windows/Visual Studio/Unity 가 없어 어떤 코드도 직접 컴파일·실행해 보지 못했습니다. 모든 수정은 공식 문서의 API/규약과 수학적 일관성을 기준으로 한 검토 결과입니다. 오류를 발견하면 이슈로 남겨 주세요.
+> **검증 상태 (기존 감사)**: 당시에는 Windows/Visual Studio/Unity가 없어 코드를 직접 컴파일·실행하지 못했습니다. 이후 NPR 데모는 Unity 배치 모드에서 자산 생성까지 확인했으며, 사용한 에디터와 미검증 범위는 [NPR 중심 개선 계획](./LEARNING_MATERIALS_PLAN.md) 및 [NPR 실습 안내](../Learning/Shaders/Unity%20URP/NPR/README.md)에 기록합니다. 이 실행은 프로젝트가 고정한 Unity 2022.3.14f1 / URP 14.0.9 조합의 렌더 검증을 대신하지 않습니다.
 
-## 1. Unity (`Unity shader/`)
+## 1. Unity URP 셰이더 (`Learning/Shaders/Unity URP/`)와 실행 프로젝트 (`Projects/NPR Unity/`)
 | 문서 | 문제 | 조치 |
 |---|---|---|
 | `ShaderTestProject` | `Packages/manifest.json` 이 없어 URP 패키지가 설치되지 않음 | `manifest.json` 추가 (URP 14.0.9, Unity 2022.3 기준) |
+| `ShaderTestProject` | NPR 코드가 안내 문서에만 있어 제공 프로젝트에서 결과를 바로 실행할 수 없음 | NPR 셰이더·램프 텍스처·머티리얼·`NPRDemo` 씬과 재생성 메뉴 추가. Windows 빌드에서 그림자 패스의 `LerpWhiteTo` 선언 누락을 발견해 `CommonMaterial.hlsl` include 로 수정. Unity 2022.3.62f3 / URP 14.0.12 에서 씬 생성·셰이더 패스 컴파일·Windows 플레이어 빌드 성공; 고정된 URP 14.0.9 의 화면 렌더는 미검증 |
 | NPR 4종 | Built-in 전용 코드(`CGPROGRAM`, Surface Shader)와 URP 가 뒤섞여 단계별로 이어지지 않음, 램프 텍스처 제작법 없음 | URP 단일 구현으로 재작성, `NPR/README.md` 에 전체 코드·따라 하기·램프 제작·문제 해결 수록 |
 | NPR 외곽선 | 외곽선 패스에 `LightMode=ShadowCaster` → 그려지지 않음 | `SRPDefaultUnlit` 로 수정 |
 | NPR 스페큘러 | `_Glossiness=0` 이면 `pow(x,0)=1` 로 전체가 하이라이트 | 지수 `max(1,…)` |
@@ -22,10 +23,10 @@
 | Unity 중급 모듈 | "Light Direction 은 광원에서 표면으로" (URP `mainLight.direction` 은 표면→광원), 주석의 "+ 환경광" 오기 | 수정 |
 | Unity 고급 모듈 | URP 에서 지원되지 않는 `GrabPass` 안내, 탄젠트 공간 설명 불완전, 구 용어 `Master Node` | 수정 |
 | Unity 후처리·컴퓨트 모듈 | `Blit(source, source)`(읽기/쓰기 동일), 메시용 변환을 전체 화면에 사용, 컴퓨트의 범위 밖 스레드·`_Bounds` 미설정, 렌더링 코드 누락(일본어 주석 혼입) | 임시 RT + `Blitter`, 범위 검사, 렌더 셰이더 포함해 재작성 |
-| ShaderLab 기초 / UnityVSAPI | `CGPROGRAM`·`fixed` 가 Built-in 전용이라는 설명 없음, 오래된 Shader Graph 용어 | 주의 문구 추가 |
+| ShaderLab 기초 / 그래픽 API 개요 | `CGPROGRAM`·`fixed`가 Built-in 전용이라는 설명 없음, 오래된 Shader Graph 용어 | 주의 문구 추가 |
 
-## 2. HLSL/DirectX (`Shader Learning/`)
-공통: 새 문서 [실습 환경과 공통 규약](../Shader%20Learning/0.%20실습%20환경과%20공통%20규약.md) 추가 (행렬 전치 규칙, 상수 버퍼 16바이트 정렬, 레지스터 슬롯, 좌표계, sRGB, `fxc` 로 문법 확인하는 법, 호스트 코드 구하는 곳).
+## 2. HLSL 셰이더 (`Learning/Shaders/HLSL/`)
+공통: [실습 환경과 공통 규약](../Learning/Shaders/HLSL/0.%20실습%20환경과%20공통%20규약.md) 추가 (행렬 전치 규칙, 상수 버퍼 16바이트 정렬, 레지스터 슬롯, 좌표계, sRGB, `fxc`로 문법 확인하는 법, 호스트 코드 구하는 곳).
 
 | 문서 | 문제 | 조치 |
 |---|---|---|
@@ -42,14 +43,14 @@
 | 6 Deferred | `PS_INPUT`/`PointSampler`/`CameraPos` 미정의, G-Buffer 에 -1~1 값을 넣으면서 포맷 언급 없음 | 선언 추가, 렌더 타겟 포맷 주의 |
 | 7 Tessellation | 패치 **중심** 기준 팩터 → 인접 패치 사이 균열(crack), `integer` 파티셔닝의 popping, 미정의 변수(`TerrainSize`, `WorldViewProj`, `MaxHeight`), 패치 꼭짓점 순서 불명 | 변 중점 기준 팩터, `fractional_odd`, 상수 버퍼 정의, 호스트 요구사항 명시 |
 
-## 3. DirectX 11 (`Directx11/`)
+## 3. Direct3D 11 실습 (`Learning/Graphics APIs/Direct3D 11/`)
 | 문서 | 문제 | 조치 |
 |---|---|---|
 | 1단계 | "아래 전체 코드를 추가하고 실행"이라 했지만 **HLSL 만 있고 C++ 코드가 없음**, 존재하지 않는 "마지막 예제의 InitDevice()" 를 가리킴, 스왑체인/티어링 설명 부정확 | 창 생성~렌더 루프까지 포함한 **`main.cpp` 한 파일** 수록, 확인 사항 추가, 설명 정정 |
 | 2단계 | 행렬 전치 없이 `mul(v, M)` 사용(결과가 뒤집힘), 법선 정규화·뒷면 하이라이트 처리 없음, 호스트 슬롯 불명 | 전치 업로드 코드, 셰이더 수정, 호스트 할 일 |
 | 3단계 | `PS_INPUT` 미정의, 토폴로지·바인딩 안내 없음 | 구조체 추가, 호스트 요구사항 명시 |
 
-## 4. Win32 (`Win32/`) — 이전 감사에서 빠졌던 부분
+## 4. 독립 보관: Windows API (`Archive/Windows API/`) — 이전 감사에서 빠졌던 부분
 | 파일 | 문제 | 조치 |
 |---|---|---|
 | `HelloWorldWindow.cpp`, `SimplePaint.cpp` | 첫 줄에 `//` 없는 텍스트(`1. win api 예제`) → **컴파일 오류** | 삭제 |
@@ -64,7 +65,7 @@
 - 이론 설명(수학/물리)은 코드와 직접 연결된 부분만 확인. 의심되면 Real-Time Rendering, learnopengl.com, Catlike Coding 과 대조
 
 ## 6. 앞으로 할 일
-- [ ] Windows 에서 `main.cpp`·Win32 예제를 빌드해 확인하고 이슈로 보고
+- [ ] Windows 에서 `main.cpp`·보관된 Win32 예제를 빌드해 확인하고 이슈로 보고
 - [ ] Unity 2022.3 에서 NPR 및 Unity 셰이더 학습 모듈의 코드를 붙여 넣어 컴파일 확인
 - [x] 폴더명 오타 정리: `Adbanced` → `Advanced` (문서 링크 수정 완료)
 - [x] Unity 프로젝트 폴더명 오타 정리: `ShderTestProject` → `ShaderTestProject`

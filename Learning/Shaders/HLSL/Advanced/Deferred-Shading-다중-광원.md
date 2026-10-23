@@ -1,0 +1,221 @@
+## 수많은 광원을 위한 지연 렌더링(Deferred Shading) 가이드
+이 문서는 전통적인 순방향 렌더링(Forward Rendering)의 한계를 극복하고, 수많은 동적 광원이 존재하는 복잡한 장면을 효율적으로 렌더링하는 지연 렌더링 파이프라인을 구축하는 방법을 설명합니다.
+
+> **따라 하기**: 코드는 셰이더 부분이며 C++ 호스트가 필요합니다. 환경·행렬 규약은 [실습 환경과 공통 규약](../0.%20실습%20환경과%20공통%20규약.md)을 먼저 읽으세요. 이 문서의 코드는 앞선 HLSL 기초·중급·고급 모듈에서 만든 구조체/상수 버퍼를 이어서 사용하며, 작성자가 직접 컴파일하지는 않았습니다.
+
+---
+
+### 왜 지연 렌더링이 필요한가?
+전통적인 **순방향 렌더링(Forward Rendering)**에서는 각 물체를 그릴 때마다, 그 물체에 영향을 미치는 모든 광원에 대한 조명 계산을 수행합니다.
+
+문제점: N개의 물체와 M개의 광원이 있다면, 셰이더는 최악의 경우 N * M번의 복잡한 조명 계산을 수행해야 합니다. 광원의 수가 조금만 늘어나도 렌더링 비용이 기하급수적으로 증가하여 성능 병목이 발생합니다.
+
+**지연 렌더링(Deferred Shading)**은 이 문제를 해결하기 위해 접근 방식을 완전히 뒤집습니다. 조명 계산을 렌더링 파이프라인의 가장 마지막으로 '지연'시키는 것입니다.
+
+핵심 아이디어: 기하 정보(위치, 법선, 색상 등)와 조명 계산을 완전히 분리합니다.
+
+```mermaid
+flowchart LR
+    G["지오메트리 패스<br/>장면을 한 번 렌더"]
+    P["월드 위치<br/>RT0"]
+    N["월드 법선<br/>RT1"]
+    A["알베도<br/>RT2"]
+    M["재질 속성<br/>RT3"]
+    L["라이팅 패스<br/>화면 픽셀마다 광원 계산"]
+    O["최종 색상<br/>광원 결과 누적"]
+    G --> P
+    G --> N
+    G --> A
+    G --> M
+    P --> L
+    N --> L
+    A --> L
+    M --> L
+    L --> O
+```
+
+G-Buffer는 장면을 그리는 동안 한 번 기록되고, 이후 각 광원 패스에서 같은 표면 자료를 다시 읽습니다. 예를 들어 알베도는 지오메트리 패스에서 기록하고, 라이팅 패스는 그 값을 광원 색·방향과 결합합니다. 이 방식은 조명 수가 많을 때 유리하지만, 화면 해상도만큼 여러 텍스처를 저장하고 읽어야 하므로 메모리 대역폭과 G-Buffer 포맷 선택이 중요합니다.
+
+* 지오메트리 패스 (G-Buffer Pass): 먼저, 장면의 모든 물체를 딱 한 번씩만 렌더링하여, 조명 계산에 필요한 모든 표면 정보(위치, 법선, 알베도, 재질 속성 등)를 여러 장의 텍스처에 저장합니다. 이 텍스처 묶음을 G-Buffer라고 합니다.
+
+* 라이팅 패스 (Lighting Pass): G-Buffer가 완성되면, 화면 공간에서 각 픽셀별로 조명 계산을 수행합니다. 각 광원에 대해 G-Buffer를 읽어와 해당 픽셀에 미치는 영향을 계산하고, 그 결과를 최종 장면에 누적(additive blending)합니다.
+
+라이팅 패스의 비용은 단순히 물체 수에 비례해 광원 계산을 반복하는 대신, 화면 픽셀과 광원의 상호작용에 따라 결정됩니다. 모든 광원을 전체 화면에서 계산하는 단순 구현은 대략 화면 픽셀 수 × 광원 수에 비례하고, 광원 볼륨이나 타일/클러스터 컬링을 적용하면 실제 영향 범위에 대해서만 계산할 수 있습니다. 다만 지오메트리 패스는 여전히 장면의 가시 지오메트리를 처리하고, G-Buffer 기록·읽기에 드는 메모리 비용도 있으므로 광원이 적거나 투명 오브젝트가 많으면 Deferred가 항상 더 빠른 것은 아닙니다.
+
+**직접 확인하기**: 같은 해상도에서 광원 수를 단계적으로 늘려 라이팅 패스의 GPU 시간을 기록합니다. 다음으로 광원의 영향 반경을 줄여 보세요. 전체 화면 패스라면 반경 변화만으로 계산 픽셀이 크게 줄지 않을 수 있지만, 광원 볼륨/컬링을 적용하면 처리량이 줄어드는지 확인할 수 있습니다.
+
+---
+### 1단계: 지오메트리 패스 (G-Buffer 생성)
+이 단계의 목표는 화면의 각 픽셀에 어떤 물체가 그려졌고, 그 표면의 특성이 무엇인지 G-Buffer에 기록하는 것입니다. 이를 위해 다중 렌더 타겟(Multiple Render Targets, MRT) 기술을 사용합니다.
+
+#### G-Buffer 구성 요소 (예시):
+> **포맷 주의**: 아래 예제는 위치와 법선을 **-1~1 범위의 원본 값 그대로** 저장하므로 렌더 타겟을 `R32G32B32A32_FLOAT` 또는 `R16G16B16A16_FLOAT` 로 만들어야 합니다. `R8G8B8A8_UNORM` 은 음수를 저장하지 못합니다 (쓰려면 `n * 0.5 + 0.5` 로 인코딩/디코딩). 실제 엔진은 위치를 깊이 버퍼에서 복원해 RT0 을 생략합니다.
+
+
+* RT0: World Position (월드 위치): float3 - 픽셀의 3D 월드 공간 좌표.
+
+* RT1: World Normal (월드 법선): float3 - 픽셀의 법선 벡터.
+
+* RT2: Albedo (알베도): float3 - 물체의 기본 색상.
+
+* RT3: Material Properties (재질 속성): float3 - Specular, Metallic, Roughness 등 다양한 재질 정보를 저장.
+
+HLSL: G-Buffer 생성 픽셀 셰이더
+이 셰이더는 모델의 정보를 받아 각 렌더 타겟에 출력합니다.
+```hlsl
+SamplerState ObjSampler : register(s0);
+struct PS_INPUT
+{
+    float4 Pos : SV_POSITION; float3 WorldPos : TEXCOORD0; float2 Tex : TEXCOORD1;
+    float3x3 TBN : TEXCOORD2; // 중급 경로의 노멀 매핑 모듈과 동일하게 VS 에서 계산
+};
+
+// G-Buffer 출력을 위한 구조체
+struct GBuffer_Output
+{
+    float4 Position   : SV_Target0;
+    float4 Normal     : SV_Target1;
+    float4 Albedo     : SV_Target2;
+    float4 Material   : SV_Target3;
+};
+
+// 입력 텍스처
+Texture2D AlbedoMap   : register(t0);
+Texture2D NormalMap   : register(t1);
+Texture2D MaterialMap : register(t2); // R: Roughness, G: Metallic
+
+GBuffer_Output PS(PS_INPUT input)
+{
+    GBuffer_Output output;
+
+    // 1. 월드 위치 저장
+    output.Position = float4(input.WorldPos, 1.0f);
+
+    // 2. 월드 법선 저장 (노멀맵 사용)
+    float3 tangentNormal = NormalMap.Sample(ObjSampler, input.Tex).rgb * 2.0 - 1.0;
+    float3 worldNormal = normalize(mul(tangentNormal, input.TBN));
+    output.Normal = float4(worldNormal, 1.0f);
+
+    // 3. 알베도 색상 저장
+    output.Albedo = AlbedoMap.Sample(ObjSampler, input.Tex);
+
+    // 4. 재질 속성 저장
+    float roughness = MaterialMap.Sample(ObjSampler, input.Tex).r;
+    float metallic = MaterialMap.Sample(ObjSampler, input.Tex).g;
+    output.Material = float4(roughness, metallic, 0.0, 1.0);
+
+    return output;
+}
+```
+---
+
+### 2단계: 라이팅 패스 (조명 계산)
+G-Buffer가 완성되면, 이제 화면의 각 픽셀을 순회하며 조명을 계산합니다. 방향성 광원(Directional Light)은 화면 전체를 덮는 사각형 하나를 렌더링하고, 점 광원(Point Light)이나 스포트라이트(Spotlight)는 실제 광원의 영향 범위에 해당하는 기하 도형(구, 원뿔 등)을 렌더링하여 최적화합니다.
+
+HLSL: 점 광원(Point Light) 계산 픽셀 셰이더
+이 셰이더는 G-Buffer 텍스처들과 현재 광원의 정보를 입력으로 받습니다.
+```hlsl
+// G-Buffer 텍스처들 (G-Buffer 를 SRV 로 읽는다)
+Texture2D PositionMap : register(t0);
+Texture2D NormalMap   : register(t1);
+Texture2D AlbedoMap   : register(t2);
+Texture2D MaterialMap : register(t3);
+SamplerState PointSampler : register(s0); // Filter = POINT, G-Buffer 는 보간하면 안 된다
+
+cbuffer CBufferPerFrame : register(b1) { float4 CameraPos; }
+struct PS_INPUT_QUAD { float4 Pos : SV_POSITION; float2 Tex : TEXCOORD0; }; // HLSL 고급 모듈의 전체 화면 삼각형 VS 출력과 동일
+
+// 현재 처리할 광원의 정보를 담은 상수 버퍼
+cbuffer LightBuffer : register(b0)
+{
+    float3 LightPos;     // float3 + float 는 한 16바이트 칸에 들어간다
+    float  LightRadius;
+    float4 LightColor;
+}
+
+float4 PS(PS_INPUT_QUAD input) : SV_Target
+{
+    // 1. UV 좌표를 이용해 G-Buffer에서 현재 픽셀의 정보들을 읽어옴
+    float3 worldPos = PositionMap.Sample(PointSampler, input.Tex).rgb;
+    float3 normal = normalize(NormalMap.Sample(PointSampler, input.Tex).rgb);
+    float3 albedo = AlbedoMap.Sample(PointSampler, input.Tex).rgb;
+    float roughness = MaterialMap.Sample(PointSampler, input.Tex).r;
+
+    // 2. 조명 계산에 필요한 벡터들 계산
+    float3 V = normalize(CameraPos.xyz - worldPos); // View Vector
+    float3 L = normalize(LightPos - worldPos);      // Light Vector
+    float3 H = normalize(V + L);                    // Halfway Vector
+
+    // 3. 감쇠(Attenuation) 계산
+    float dist = length(LightPos - worldPos);
+    float attenuation = 1.0 - saturate(dist / LightRadius);
+    attenuation *= attenuation;
+
+    // 4. 조명 계산 (여기서는 간단한 블린-퐁 모델 사용)
+    // Diffuse
+    float NdotL = saturate(dot(normal, L));
+    float3 diffuse = albedo * LightColor.rgb * NdotL;
+
+    // Specular
+    float NdotH = saturate(dot(normal, H));
+    float specPower = exp2(lerp(10, 1, roughness)); // 거칠기에 따른 반짝임 조절
+    float3 specular = pow(NdotH, specPower) * LightColor.rgb;
+
+    // 5. 최종 광원 기여도 계산
+    float3 finalColor = (diffuse + specular) * attenuation;
+
+    return float4(finalColor, 1.0);
+}
+```
+> **광원 볼륨(구/원뿔)으로 그릴 때의 주의**: 위 셰이더는 화면 전체 삼각형의 UV(`input.Tex`)를 쓰는 형태입니다. 구 같은 광원 볼륨 메시를 그리면 메시의 UV 는 G-Buffer 좌표와 무관하므로, 대신 `float2 uv = input.Pos.xy / ScreenSize;` (`SV_POSITION` 의 픽셀 좌표를 화면 크기로 나눔)로 G-Buffer 를 샘플링해야 합니다. 또한 광원 볼륨은 가산 혼합(`ONE`, `ONE`)과 깊이 쓰기 끔 상태로 그립니다.
+---
+
+### 렌더링 루프 요약
+G-Buffer 패스
+
+* G-Buffer 렌더 타겟들을 바인딩합니다.
+
+* 깊이 버퍼를 활성화합니다.
+
+* 장면의 모든 불투명(opaque) 오브젝트들을 G-Buffer 생성 셰이더로 렌더링합니다.
+
+라이팅 패스
+
+* G-Buffer 렌더 타겟들을 언바인딩하고, 화면의 백 버퍼(Back Buffer)를 렌더 타겟으로 바인딩합니다.
+
+* 깊이 테스트는 끄고, **가산 혼합(Additive Blending)**을 활성화합니다. (각 광원의 결과를 더하기 위해)
+
+장면의 모든 광원에 대해 반복:
+
+* 라이팅 셰이더를 바인딩합니다.
+
+* G-Buffer 텍스처들을 입력으로 바인딩합니다.
+
+* 현재 광원의 정보를 상수 버퍼로 전달합니다.
+
+* 광원의 영향권에 해당하는 기하 도형(구, 사각형 등)을 렌더링합니다.
+
+* 후처리 및 투명 오브젝트 렌더링
+
+* (선택) 라이팅 결과 위에 후처리 효과를 적용합니다.
+
+* (중요) 지연 렌더링이 끝난 후, 전통적인 순방향 렌더링 방식으로 투명(transparent) 오브젝트들을 렌더링합니다.
+
+---
+
+### 장단점
+장점:
+
+* 수많은 동적 광원을 매우 효율적으로 처리 가능.
+
+* 기하와 조명이 분리되어 셰이더와 렌더링 파이프라인 관리가 용이함.
+
+* 화면 공간에서 작동하는 모든 후처리 효과와 궁합이 좋음.
+
+단점:
+
+* G-Buffer로 인해 메모리 사용량과 대역폭 요구량이 높음.
+
+* 투명 오브젝트를 처리하기 까다로워 별도의 순방향 렌더링 패스가 필요함.
+
+* 하드웨어 MSAA(Multi-Sample Anti-Aliasing) 적용이 복잡함.
