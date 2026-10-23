@@ -12,9 +12,13 @@ IDR_MENU MENU
 BEGIN
     POPUP "&File"
     BEGIN
-        MENUITEM "&Open\tCtrl+O",             IDM_FILE_OPEN
-        MENUITEM "&Save\tCtrl+S",             IDM_FILE_SAVE
+        MENUITEM "&Open",                     IDM_FILE_OPEN
+        MENUITEM "&Save",                     IDM_FILE_SAVE
         MENUITEM SEPARATOR
         MENUITEM "E&xit",                     IDM_FILE_EXIT
+    END
+    POPUP "&Help"
+    BEGIN
+        MENUITEM "&About...",                 IDM_HELP_ABOUT
     END
 END

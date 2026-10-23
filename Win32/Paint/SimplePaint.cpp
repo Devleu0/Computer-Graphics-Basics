@@ -3,15 +3,21 @@
 
 #include <windows.h>
 #include <windowsx.h> // GET_X_LPARAM, GET_Y_LPARAM 매크로를 위해 포함
+#include <vector>
 
 // 전역 변수 선언
 HINSTANCE hInst;
 WCHAR szTitle[] = L"Simple Paint";           // 제목 표시줄 텍스트
 WCHAR szWindowClass[] = L"MyPaintWindowClass"; // 창 클래스 이름
 
-// 그리기 상태를 저장할 전역 변수
-POINT ptPrevPos; // 이전 마우스 위치
-COLORREF currentColor = RGB(0, 0, 0); // 현재 그리기 색상 (기본: 검정)
+struct Stroke
+{
+    COLORREF color;
+    std::vector<POINT> points;
+};
+
+std::vector<Stroke> strokes;
+COLORREF currentColor = RGB(0, 0, 0);
 
 // 함수 선언
 ATOM                MyRegisterClass(HINSTANCE hInstance);
@@ -86,43 +92,39 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     {
     case WM_LBUTTONDOWN: // 마우스 왼쪽 버튼을 눌렀을 때
         {
-            // 현재 마우스 위치를 이전 위치로 저장
-            ptPrevPos.x = GET_X_LPARAM(lParam);
-            ptPrevPos.y = GET_Y_LPARAM(lParam);
+            Stroke stroke;
+            stroke.color = currentColor;
+            stroke.points.push_back({ GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam) });
+            strokes.push_back(stroke);
+            SetCapture(hWnd);
         }
         break;
 
     case WM_MOUSEMOVE: // 마우스가 움직일 때
         {
-            // 마우스 왼쪽 버튼이 눌린 상태에서 움직이면
-            if (wParam & MK_LBUTTON)
+            if (GetCapture() == hWnd && (wParam & MK_LBUTTON) && !strokes.empty())
             {
-                HDC hdc = GetDC(hWnd); // 윈도우의 DC를 얻음
-
-                // 현재 색상으로 펜 생성
-                HPEN hPen = CreatePen(PS_SOLID, 2, currentColor);
-                HPEN hOldPen = (HPEN)SelectObject(hdc, hPen);
-
-                // 이전 위치에서 현재 위치까지 선을 그림
-                MoveToEx(hdc, ptPrevPos.x, ptPrevPos.y, NULL);
-                LineTo(hdc, GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
-
-                // 사용한 펜 정리
-                SelectObject(hdc, hOldPen);
-                DeleteObject(hPen);
-                
-                ReleaseDC(hWnd, hdc); // DC 해제
-
-                // 현재 위치를 이전 위치로 갱신
-                ptPrevPos.x = GET_X_LPARAM(lParam);
-                ptPrevPos.y = GET_Y_LPARAM(lParam);
+                strokes.back().points.push_back({ GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam) });
+                InvalidateRect(hWnd, NULL, FALSE);
             }
+        }
+        break;
+
+    case WM_LBUTTONUP:
+        if (GetCapture() == hWnd)
+        {
+            if (!strokes.empty())
+            {
+                strokes.back().points.push_back({ GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam) });
+                InvalidateRect(hWnd, NULL, FALSE);
+            }
+            ReleaseCapture();
         }
         break;
 
     case WM_RBUTTONDOWN: // 마우스 오른쪽 버튼을 눌렀을 때
         {
-            // 화면을 강제로 다시 그리게 하여 깨끗하게 지움
+            strokes.clear();
             InvalidateRect(hWnd, NULL, TRUE);
         }
         break;
@@ -148,8 +150,34 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         {
             PAINTSTRUCT ps;
             HDC hdc = BeginPaint(hWnd, &ps);
-            // TODO: 여기에 그리기 코드를 추가합니다.
-            // 지금은 InvalidateRect 호출 시 배경색으로 지우는 역할만 합니다.
+            for (const Stroke& stroke : strokes)
+            {
+                if (stroke.points.empty())
+                    continue;
+
+                HPEN hPen = CreatePen(PS_SOLID, 2, stroke.color);
+                if (!hPen)
+                    continue;
+
+                HGDIOBJ hOldPen = SelectObject(hdc, hPen);
+                if (hOldPen && hOldPen != HGDI_ERROR)
+                {
+                    if (stroke.points.size() == 1)
+                    {
+                        SetPixelV(hdc, stroke.points[0].x, stroke.points[0].y, stroke.color);
+                    }
+                    else
+                    {
+                        MoveToEx(hdc, stroke.points[0].x, stroke.points[0].y, NULL);
+                        for (std::size_t i = 1; i < stroke.points.size(); ++i)
+                        {
+                            LineTo(hdc, stroke.points[i].x, stroke.points[i].y);
+                        }
+                    }
+                    SelectObject(hdc, hOldPen);
+                }
+                DeleteObject(hPen);
+            }
             EndPaint(hWnd, &ps);
         }
         break;

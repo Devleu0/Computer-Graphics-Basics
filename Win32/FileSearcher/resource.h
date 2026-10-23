@@ -7,6 +7,7 @@
 #define IDC_EDIT_TERM                   1001
 #define IDC_BUTTON_SEARCH               1002
 #define IDC_LIST_RESULTS                1003
+#define IDC_STATIC_STATUS               1004
 #define IDC_STATIC                      -1
 
 // 다음은 새 개체에 대한 기본값입니다.
