@@ -12,16 +12,16 @@
 ## 1. Unity (`Unity shader/`)
 | 문서 | 문제 | 조치 |
 |---|---|---|
-| `ShderTestProject` | `Packages/manifest.json` 이 없어 URP 패키지가 설치되지 않음 | `manifest.json` 추가 (URP 14.0.9, Unity 2022.3 기준) |
+| `ShaderTestProject` | `Packages/manifest.json` 이 없어 URP 패키지가 설치되지 않음 | `manifest.json` 추가 (URP 14.0.9, Unity 2022.3 기준) |
 | NPR 4종 | Built-in 전용 코드(`CGPROGRAM`, Surface Shader)와 URP 가 뒤섞여 단계별로 이어지지 않음, 램프 텍스처 제작법 없음 | URP 단일 구현으로 재작성, `NPR/README.md` 에 전체 코드·따라 하기·램프 제작·문제 해결 수록 |
 | NPR 외곽선 | 외곽선 패스에 `LightMode=ShadowCaster` → 그려지지 않음 | `SRPDefaultUnlit` 로 수정 |
 | NPR 스페큘러 | `_Glossiness=0` 이면 `pow(x,0)=1` 로 전체가 하이라이트 | 지수 `max(1,…)` |
 | NPR 다중 램프 | `_RampBlend` 를 Properties 에 선언하고 `SetGlobalFloat` → 머티리얼 값이 가려 스크립트 무효 | 전역용 변수를 Properties 밖에 선언 |
 | NPR 램프 | `"RenderPipeline"="UniversalRenderPipeline"` (올바른 값 `UniversalPipeline`) | 수정 |
-| Part 2~3 | 변수 선언·구조체·include 가 빠진 발췌 코드(NormalMapped 의 `finalColor`, SimpleRim 의 `lambert` 등), `Tags` 안의 쉼표 | 완성 셰이더를 본문에 수록 |
-| Part 2 | "Light Direction 은 광원에서 표면으로" (URP `mainLight.direction` 은 표면→광원), 주석의 "+ 환경광" 오기 | 수정 |
-| Part 3 | URP 에서 지원되지 않는 `GrabPass` 안내, 탄젠트 공간 설명 불완전, 구 용어 `Master Node` | 수정 |
-| Part 4 | `Blit(source, source)`(읽기/쓰기 동일), 메시용 변환을 전체 화면에 사용, 컴퓨트의 범위 밖 스레드·`_Bounds` 미설정, 렌더링 코드 누락(일본어 주석 혼입) | 임시 RT + `Blitter`, 범위 검사, 렌더 셰이더 포함해 재작성 |
+| Unity 중급 모듈 | 변수 선언·구조체·include 가 빠진 발췌 코드(NormalMapped 의 `finalColor`, SimpleRim 의 `lambert` 등), `Tags` 안의 쉼표 | 완성 셰이더를 본문에 수록 |
+| Unity 중급 모듈 | "Light Direction 은 광원에서 표면으로" (URP `mainLight.direction` 은 표면→광원), 주석의 "+ 환경광" 오기 | 수정 |
+| Unity 고급 모듈 | URP 에서 지원되지 않는 `GrabPass` 안내, 탄젠트 공간 설명 불완전, 구 용어 `Master Node` | 수정 |
+| Unity 후처리·컴퓨트 모듈 | `Blit(source, source)`(읽기/쓰기 동일), 메시용 변환을 전체 화면에 사용, 컴퓨트의 범위 밖 스레드·`_Bounds` 미설정, 렌더링 코드 누락(일본어 주석 혼입) | 임시 RT + `Blitter`, 범위 검사, 렌더 셰이더 포함해 재작성 |
 | ShaderLab 기초 / UnityVSAPI | `CGPROGRAM`·`fixed` 가 Built-in 전용이라는 설명 없음, 오래된 Shader Graph 용어 | 주의 문구 추가 |
 
 ## 2. HLSL/DirectX (`Shader Learning/`)
@@ -29,15 +29,15 @@
 
 | 문서 | 문제 | 조치 |
 |---|---|---|
-| Part 1 | 채팅 복사 흔적(`9월 19일 오후 9:18`) | 삭제 |
-| Part 1 | 2주차 코드가 `WVP`/`World` 를 선언하지 않음, 3주차는 `...` 로 생략돼 합쳐진 코드가 없음, 행렬 전치 언급 없음, 법선 변환 한계 설명 없음 | 완성형 코드 + 합쳐진 참고 답안, 호스트 할 일 추가 |
-| Part 2 | 반사율을 `MatSpecular.a` 로 쓰지만 같은 값(`w`)을 Shininess 로도 사용(충돌) | `MatExtra.x` 로 분리 |
-| Part 2 | 그림자: NDC 를 UV 로 변환하지 않음(`xy/w` 를 그대로 샘플), `ShadowMapSize` 미정의, "4x4" 라 쓰고 3x3 루프, 범위 검사 없음, `TEXCOORD3` 이 TBN(`TEXCOORD2~4`)과 충돌 | 함수로 재작성(UV 변환, 범위 검사, 3x3 PCF, `SampleCmpLevelZero`), 호스트 할 일 추가 |
-| Part 2 | 일본어 한자 혼입(`景色`) | 수정 |
-| Part 3 | 전체 화면 VS 출력 구조체가 `VS_INPUT` 이라는 이름, 본문은 Quad 라고 하고 코드는 삼각형 | 이름·설명 정정 |
-| Part 3 | GS: 빌보드 크기를 **클립 공간**에서 더함(원근 나눗셈 때문에 틀림), `PS_INPUT`/`output.Tex = ...` 미정의, `TriangleStrip` 타입(실제는 `TriangleStream`) | 월드 공간 + 카메라 right/up 방식 완성형으로 재작성 |
-| Part 3 | CS: `DeltaTime` 미정의, 범위 검사 없음, 호스트 Dispatch 계산 없음 | 완성형 + 호스트 할 일 |
-| Part 3 | 최적화 조언이 과장(`mad` 수동 사용, `half` 가 빠르다는 주장) | 정정 (컴파일러 자동 처리, DX11 데스크톱에서 `half`=`float`) |
+| HLSL 기초 모듈 | 채팅 복사 흔적(`9월 19일 오후 9:18`) | 삭제 |
+| HLSL 기초 모듈 | 조명 코드가 `WVP`/`World` 를 선언하지 않음, 텍스처 예제가 `...` 로 생략돼 합쳐진 코드가 없음, 행렬 전치 언급 없음, 법선 변환 한계 설명 없음 | 완성형 코드 + 합쳐진 참고 답안, 호스트 할 일 추가 |
+| HLSL 중급 모듈 | 반사율을 `MatSpecular.a` 로 쓰지만 같은 값(`w`)을 Shininess 로도 사용(충돌) | `MatExtra.x` 로 분리 |
+| HLSL 중급 모듈 | 그림자: NDC 를 UV 로 변환하지 않음(`xy/w` 를 그대로 샘플), `ShadowMapSize` 미정의, "4x4" 라 쓰고 3x3 루프, 범위 검사 없음, `TEXCOORD3` 이 TBN(`TEXCOORD2~4`)과 충돌 | 함수로 재작성(UV 변환, 범위 검사, 3x3 PCF, `SampleCmpLevelZero`), 호스트 할 일 추가 |
+| HLSL 중급 모듈 | 일본어 한자 혼입(`景色`) | 수정 |
+| HLSL 고급 모듈 | 전체 화면 VS 출력 구조체가 `VS_INPUT` 이라는 이름, 본문은 Quad 라고 하고 코드는 삼각형 | 이름·설명 정정 |
+| HLSL 고급 모듈 | GS: 빌보드 크기를 **클립 공간**에서 더함(원근 나눗셈 때문에 틀림), `PS_INPUT`/`output.Tex = ...` 미정의, `TriangleStrip` 타입(실제는 `TriangleStream`) | 월드 공간 + 카메라 right/up 방식 완성형으로 재작성 |
+| HLSL 고급 모듈 | CS: `DeltaTime` 미정의, 범위 검사 없음, 호스트 Dispatch 계산 없음 | 완성형 + 호스트 할 일 |
+| HLSL 고급 모듈 | 최적화 조언이 과장(`mad` 수동 사용, `half` 가 빠르다는 주장) | 정정 (컴파일러 자동 처리, DX11 데스크톱에서 `half`=`float`) |
 | 5 PBR | 필요한 선언 없음, 선형/sRGB·감마 언급 없음, 결과가 어두운 이유 설명 없음 | 선언 추가, 색 공간/밝기 주의 추가 |
 | 6 Deferred | `PS_INPUT`/`PointSampler`/`CameraPos` 미정의, G-Buffer 에 -1~1 값을 넣으면서 포맷 언급 없음 | 선언 추가, 렌더 타겟 포맷 주의 |
 | 7 Tessellation | 패치 **중심** 기준 팩터 → 인접 패치 사이 균열(crack), `integer` 파티셔닝의 popping, 미정의 변수(`TerrainSize`, `WorldViewProj`, `MaxHeight`), 패치 꼭짓점 순서 불명 | 변 중점 기준 팩터, `fractional_odd`, 상수 버퍼 정의, 호스트 요구사항 명시 |
@@ -65,8 +65,9 @@
 
 ## 6. 앞으로 할 일
 - [ ] Windows 에서 `main.cpp`·Win32 예제를 빌드해 확인하고 이슈로 보고
-- [ ] Unity 2022.3 에서 NPR/Part 2~4 셰이더를 붙여 넣어 컴파일 확인
-- [ ] 폴더명 오타 정리: `ShderTestProject` → `ShaderTestProject`, `Adbanced` → `Advanced` (링크 동시 수정 필요)
+- [ ] Unity 2022.3 에서 NPR 및 Unity 셰이더 학습 모듈의 코드를 붙여 넣어 컴파일 확인
+- [x] 폴더명 오타 정리: `Adbanced` → `Advanced` (문서 링크 수정 완료)
+- [x] Unity 프로젝트 폴더명 오타 정리: `ShderTestProject` → `ShaderTestProject`
 
 ## 7. 문서 작성 규칙 (제안)
 1. 코드 블록은 "완성형" 이거나 "발췌" 임을 표시한다. 발췌는 기준이 되는 완성형의 위치를 적는다.

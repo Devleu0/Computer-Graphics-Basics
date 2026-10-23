@@ -1,7 +1,7 @@
-## 수많은 광원을 위한 지연 렌더링(Deferred Shading) 완벽 가이드
+## 수많은 광원을 위한 지연 렌더링(Deferred Shading) 가이드
 이 문서는 전통적인 순방향 렌더링(Forward Rendering)의 한계를 극복하고, 수많은 동적 광원이 존재하는 복잡한 장면을 효율적으로 렌더링하는 지연 렌더링 파이프라인을 구축하는 방법을 설명합니다.
 
-> **따라 하기**: 코드는 셰이더 부분이며 C++ 호스트가 필요합니다. 환경·행렬 규약은 [실습 환경과 공통 규약](../0.%20실습%20환경과%20공통%20규약.md)을 먼저 읽으세요. 이 문서의 코드는 앞선 Basics 문서(Part 1~3)에서 만든 구조체/상수 버퍼를 이어서 사용하며, 작성자가 직접 컴파일하지는 않았습니다.
+> **따라 하기**: 코드는 셰이더 부분이며 C++ 호스트가 필요합니다. 환경·행렬 규약은 [실습 환경과 공통 규약](../0.%20실습%20환경과%20공통%20규약.md)을 먼저 읽으세요. 이 문서의 코드는 앞선 HLSL 기초·중급·고급 모듈에서 만든 구조체/상수 버퍼를 이어서 사용하며, 작성자가 직접 컴파일하지는 않았습니다.
 
 ---
 
@@ -43,7 +43,7 @@ SamplerState ObjSampler : register(s0);
 struct PS_INPUT
 {
     float4 Pos : SV_POSITION; float3 WorldPos : TEXCOORD0; float2 Tex : TEXCOORD1;
-    float3x3 TBN : TEXCOORD2; // (Basics Part 2 의 6주차와 동일하게 VS 에서 계산)
+    float3x3 TBN : TEXCOORD2; // 중급 경로의 노멀 매핑 모듈과 동일하게 VS 에서 계산
 };
 
 // G-Buffer 출력을 위한 구조체
@@ -99,7 +99,7 @@ Texture2D MaterialMap : register(t3);
 SamplerState PointSampler : register(s0); // Filter = POINT, G-Buffer 는 보간하면 안 된다
 
 cbuffer CBufferPerFrame : register(b1) { float4 CameraPos; }
-struct PS_INPUT_QUAD { float4 Pos : SV_POSITION; float2 Tex : TEXCOORD0; }; // Basics Part 3 의 전체 화면 삼각형 VS 출력과 동일
+struct PS_INPUT_QUAD { float4 Pos : SV_POSITION; float2 Tex : TEXCOORD0; }; // HLSL 고급 모듈의 전체 화면 삼각형 VS 출력과 동일
 
 // 현재 처리할 광원의 정보를 담은 상수 버퍼
 cbuffer LightBuffer : register(b0)
