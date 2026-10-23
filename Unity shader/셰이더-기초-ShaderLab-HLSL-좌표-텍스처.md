@@ -1,4 +1,4 @@
-# 유니티 셰이더 Part 1 학습 자료
+# Unity 셰이더 기초: ShaderLab, HLSL, 좌표, 텍스처
 이 문서는 ShaderLab 학습 자료입니다. 코드 예제를 통해 셰이더의 기초를 탄탄히 다지는 것을 목표로 합니다.
 
  * 목차
@@ -181,7 +181,7 @@ Shader "MyShaders/SimpleUnlit" // 셰이더의 경로와 이름
 
 아래는 과제를 위한 전체 코드 예시입니다. Project 창에서 Create > Shader > Unlit Shader로 파일을 생성하고 내용을 아래 코드로 교체한 뒤, 새 머티리얼(Material)을 만들어 이 셰이더를 적용하고 3D 오브젝트에 할당해보세요.
 
-> **따라 하기 환경**: Unity 2022.3 LTS, 템플릿 `3D (URP)`. 이 문서의 예제 셰이더는 Project 창 → Create → Shader → **Unlit Shader**(또는 Empty Shader)로 파일을 만들고 내용을 통째로 교체한 뒤, 셰이더 우클릭 → Create → Material → 오브젝트에 드래그해서 확인합니다. 작성자가 에디터에서 직접 컴파일해 보지는 못했으므로 콘솔 에러가 나면 알려 주세요. (참고: 변수를 `CBUFFER_START(UnityPerMaterial)` 안에 넣으면 SRP Batcher 와 호환됩니다. Part 2 문서 예제가 이 형식입니다.)
+> **따라 하기 환경**: Unity 2022.3 LTS, 템플릿 `3D (URP)`. 이 문서의 예제 셰이더는 Project 창 → Create → Shader → **Unlit Shader**(또는 Empty Shader)로 파일을 만들고 내용을 통째로 교체한 뒤, 셰이더 우클릭 → Create → Material → 오브젝트에 드래그해서 확인합니다. 작성자가 에디터에서 직접 컴파일해 보지는 못했으므로 콘솔 에러가 나면 알려 주세요. (참고: 변수를 `CBUFFER_START(UnityPerMaterial)` 안에 넣으면 SRP Batcher 와 호환됩니다. 조명·블렌딩 모듈의 예제가 이 형식입니다.)
 
 ```c
 // 유니티 셰이더 파일: SimpleColor.shader

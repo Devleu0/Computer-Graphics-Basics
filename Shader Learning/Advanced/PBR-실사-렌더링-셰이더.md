@@ -1,7 +1,7 @@
 ## 실사 렌더링을 위한 PBR 셰이더 가이드 (Metallic-Roughness)
 이 문서는 기존의 퐁(Phong) 조명 모델을 넘어, 현대 게임 및 영화에서 표준으로 사용되는 물리 기반 렌더링(Physically Based Rendering, PBR)의 원리를 이해하고 HLSL로 직접 구현하는 방법을 다룹니다.
 
-> **따라 하기**: 코드는 셰이더 부분이며 C++ 호스트가 필요합니다. 환경·행렬 규약은 [실습 환경과 공통 규약](../0.%20실습%20환경과%20공통%20규약.md)을 먼저 읽으세요. 이 문서의 코드는 앞선 Basics 문서(Part 1~3)에서 만든 구조체/상수 버퍼를 이어서 사용하며, 작성자가 직접 컴파일하지는 않았습니다.
+> **따라 하기**: 코드는 셰이더 부분이며 C++ 호스트가 필요합니다. 환경·행렬 규약은 [실습 환경과 공통 규약](../0.%20실습%20환경과%20공통%20규약.md)을 먼저 읽으세요. 이 문서의 코드는 앞선 HLSL 기초·중급·고급 모듈에서 만든 구조체/상수 버퍼를 이어서 사용하며, 작성자가 직접 컴파일하지는 않았습니다.
 
 ### PBR이란 무엇인가?
 PBR은 '물리 법칙에 기반'하여 빛과 재질의 상호작용을 시뮬레이션하는 렌더링 기법입니다. 아티스트의 감에 의존하던 기존 방식과 달리, PBR은 몇 가지 직관적인 물리 속성(예: 거칠기, 금속성)만으로 다양한 재질을 일관되고 사실적으로 표현할 수 있습니다.
@@ -87,7 +87,7 @@ float3 FresnelSchlick(float cosTheta, float3 F0)
 ```
 3. 메인 픽셀 셰이더
 이제 모든 조각을 하나로 합쳐 최종 색상을 계산합니다. PBR은 직접광(Directional/Point light)과 간접광(Image-Based Light)을 모두 고려해야 완벽한 결과가 나옵니다. 여기서는 직접광 계산에 집중합니다.
-이 코드가 컴파일되려면 아래 선언이 먼저 있어야 합니다 (Basics Part 1~2 와 동일).
+이 코드가 컴파일되려면 아래 선언이 먼저 있어야 합니다 (HLSL 기초·중급 모듈과 동일).
 ```hlsl
 cbuffer CBufferPerFrame : register(b1) { float4 LightDir; float4 LightColor; float4 CameraPos; } // LightDir: 빛이 진행하는 방향
 struct PS_INPUT { float4 Pos : SV_POSITION; float3 Normal : NORMAL; float3 WorldPos : TEXCOORD0; float2 Tex : TEXCOORD1; };
